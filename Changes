@@ -1,5 +1,21 @@
 Revision history for Perl extension Tcl::Tk.
 
+0.74	21-mar-2004, Vadim Konovalov
+	- accept many changes from Jeff Hobbs, TCL guru and lead developer:
+	  * pannedwindow
+	  * menu widget
+	  * many cleanup of code
+	- accept changes from Slaven Rezic, wishlist 5656 from rt.cpan.org,
+	  * "font" and "waitVariable" are now available
+	  * the standard "Message" widget is now available
+	- test is performed (although tiny)
+	- added some demos
+          
+0.73	(not released to public), Vadim Konovalov
+	- many perlTk compatibility changes, autoloading of perlTk widget
+	  methods of wwwVvvv type
+
+
 0.72	20-aug-2003, Vadim Konovalov
 	- provide very similar syntax as in perlTk, for SRC-level compatibility
 	  (widget methods Text, Button, Frame and so on)

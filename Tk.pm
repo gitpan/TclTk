@@ -1,9 +1,12 @@
 package Tcl::Tk;
 
+use strict;
 use Tcl;
 use Exporter;
 use DynaLoader;
-@ISA = qw(Exporter DynaLoader);
+our @ISA = qw(Exporter DynaLoader);
+
+$Tcl::VERSION = '0.4';
 
 =head1 NAME
 
@@ -24,6 +27,14 @@ The Tcl::Tk submodule of the Tcl module gives access to the Tk library.
 It does this by creating a Tcl interpreter object (using the Tcl extension)
 and binding in all of Tk into the interpreter (in the same way that
 B<wish> or other Tcl/Tk applications do).
+
+Unlike perl-tk extension (available on CPAN), where Tcl+Tk+Tix is embedded
+into extension, this module connects to existing TCL installation. Such
+approach allows to work with most up-to-date TCL, and this automatically gives
+Unicode and pure TCL widgets available to application.
+
+Please see and try to run demo scripts 'demo.pl', 'demo-w-tix.pl' and
+'widgets.pl' in tk-demo directory of source tarball.
 
 =head2 Access to the Tcl and Tcl::Tk extensions
 
@@ -65,6 +76,9 @@ extensions closely follow the C interface names with leading Tcl_
 or Tk_ removed.
 
 =head2 Creating widgets
+
+As a general rule, you need to consult TCL man pages to realize how to
+use a widget, and after that invoke perl command that creates it preperly.
 
 If desired, widgets can be created and handled entirely by Tcl/Tk code
 evaluated in the Tcl interpreter object $i (created above). However,
@@ -123,20 +137,34 @@ C<tkbind> in Perl. The arguments you pass to any of these Perl
 commands are not touched by the Tcl parser: each Perl argument is
 passed as a separate argument to the Tcl command.
 
+=head2 BUGS
+
+Currently work is in progress, and some features could change in future
+versions.
+
 =head2 AUTHOR
 
 Malcolm Beattie, mbeattie@sable.ox.ac.uk
+Vadim Konovalov, vkonovalov@peterstar.ru, 19 May 2003.
+
+=head2 COPYRIGHT
+
+This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.
+
+See http://www.perl.com/perl/misc/Artistic.html
 
 =cut
 
 my @widgets = qw(frame toplevel label button checkbutton radiobutton scale
-		 message listbox scrollbar entry menu menubutton canvas text);
+		mainwindow message listbox scrollbar entry menu menubutton canvas text);
 my @misc = qw(MainLoop after destroy focus grab lower option place raise
 	      selection tk tkbind tkpack tkwait update winfo wm);
-@EXPORT_OK = (@widgets, @misc);
-%EXPORT_TAGS = (widgets => \@widgets, misc => \@misc);
+our @EXPORT_OK = (@widgets, @misc);
+our %EXPORT_TAGS = (widgets => \@widgets, misc => \@misc);
 
 my $tkinterp = undef;		# this gets defined when "new" is done
+my $mainwindow = ['.'];
+my %w; # hash to keep track on all widgets
 
 sub new {
     my ($class, $name, $display, $sync) = @_;
@@ -148,7 +176,7 @@ sub new {
     if (defined($display)) {
 	push(@argv, -display => $display);
     } else {
-	$display = $ENV{DISPLAY};
+	$display = $ENV{DISPLAY} || '';
     }
     if (defined($name)) {
 	push(@argv, -name => $name);
@@ -162,12 +190,13 @@ sub new {
     }
     $i = new Tcl;
     $i->CreateMainWindow($display, $name, $sync);
+    bless $mainwindow, 'Tcl::Tk::Widget::MainWindow';
     $i->SetVar2("env", "DISPLAY", $display, Tcl::GLOBAL_ONLY);
     $i->SetVar("argv0", $0, Tcl::GLOBAL_ONLY);
     $i->SetVar("argc", scalar(@main::ARGV), Tcl::GLOBAL_ONLY);
     $i->ResetResult();
     push(@argv, "--", @ARGV);
-    map { $i->AppendElement($_) } @argv;
+    $i->AppendElement($_) for @argv;
     $i->SetVar("argv", $i->result(), Tcl::GLOBAL_ONLY);
     $i->SetVar("tcl_interactive", "0", Tcl::GLOBAL_ONLY);
     $i->Init();
@@ -177,65 +206,80 @@ sub new {
     return $i;
 }
 
-sub frame {
+sub frame($@) {
     my $path = $tkinterp->call("frame", @_);
-    bless \$path, Tcl::Tk::Widget;
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub toplevel {
     my $path = $tkinterp->call("toplevel", @_);
-    bless \$path, Tcl::Tk::Widget;
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+}
+sub mainwindow {
+    # this is a window with path '.'
+    $mainwindow;
 }
 sub label {
     my $path = $tkinterp->call("label", @_);
-    bless \$path, Tcl::Tk::Widget;
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub button {
     my $path = $tkinterp->call("button", @_);
-    bless \$path, Tcl::Tk::Widget;
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub checkbutton {
     my $path = $tkinterp->call("checkbutton", @_);
-    bless \$path, Tcl::Tk::Widget;
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub radiobutton {
     my $path = $tkinterp->call("radiobutton", @_);
-    bless \$path, Tcl::Tk::Widget;
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub scale {
     my $path = $tkinterp->call("scale", @_);
-    bless \$path, Tcl::Tk::Widget;
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub message {
     my $path = $tkinterp->call("message", @_);
-    bless \$path, Tcl::Tk::Widget;
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub listbox {
     my $path = $tkinterp->call("listbox", @_);
-    bless \$path, Tcl::Tk::Widget;
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub scrollbar {
     my $path = $tkinterp->call("scrollbar", @_);
-    bless \$path, Tcl::Tk::Widget;
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub entry {
     my $path = $tkinterp->call("entry", @_);
-    bless \$path, Tcl::Tk::Widget;
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub menu {
     my $path = $tkinterp->call("menu", @_);
-    bless \$path, Tcl::Tk::Widget;
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub menubutton {
     my $path = $tkinterp->call("menubutton", @_);
-    bless \$path, Tcl::Tk::Widget;
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub canvas {
     my $path = $tkinterp->call("canvas", @_);
-    bless \$path, Tcl::Tk::Widget;
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub text {
     my $path = $tkinterp->call("text", @_);
-    bless \$path, Tcl::Tk::Widget;
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+}
+sub widget($@) {
+    my $wpath = shift;
+    return $w{$wpath};
+}
+sub widget_do($@) {
+    my $wpath = shift;
+    return $w{$wpath};
+}
+sub widgets {
+  \%w;
 }
 
 sub after { $tkinterp->call("after", @_) }
@@ -265,15 +309,29 @@ sub tkpack { $tkinterp->call("pack", @_) }
 
 package Tcl::Tk::Widget;
 
+
 sub DESTROY {}			# do not let AUTOLOAD catch this method
 
 sub AUTOLOAD {
     my $w = shift;
-    my $method = $AUTOLOAD;
-    $method =~ s/^Tcl::Tk::Widget::// or die "weird inheritance";
+    my $method = $::Tcl::Tk::Widget::AUTOLOAD;
+    $method =~ s/^Tcl::Tk::Widget::// or die "weird inheritance ($method)";
     $tkinterp->call($$w, $method, @_);
+}
+
+package Tcl::Tk::Widget::MainWindow;
+
+
+sub DESTROY {}			# do not let AUTOLOAD catch this method
+
+sub AUTOLOAD {
+    my $w = shift;
+    my $method = $::Tcl::Tk::Widget::MainWindow::AUTOLOAD;
+    $method =~ s/^Tcl::Tk::Widget::MainWindow::// or die "weird inheritance ($method)";
+    $tkinterp->call('.', $method, @_);
 }
 
 bootstrap Tcl::Tk;
 
 1;
+

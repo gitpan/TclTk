@@ -1,6 +1,78 @@
+Changes		changes file
 MANIFEST	This list of files
 Makefile.PL	Tcl::Tk extension makefile writer
 README		Introduction to the Tcl::Tk extension
 Tk.pm		Tcl::Tk extension module
 Tk.xs		Tcl::Tk extension implementation
 typemap		Tcl::Tk extension types
+demo.pl		simple demo script
+demo-w-tix.pl	simple demo script with tix 'form' geometry manager
+tk-demos/arrow.tcl	
+tk-demos/bind.tcl	
+tk-demos/bitmap.tcl	
+tk-demos/browse
+tk-demos/button.tcl	
+tk-demos/check.tcl	
+tk-demos/clrpick.tcl	
+tk-demos/colors.pl
+tk-demos/colors.tcl	
+tk-demos/cscroll.tcl	
+tk-demos/ctext.tcl	
+tk-demos/dialog1.tcl	
+tk-demos/dialog2.tcl	
+tk-demos/entry1.tcl	
+tk-demos/entry2.tcl	
+tk-demos/entry3.tcl	
+tk-demos/filebox.tcl	
+tk-demos/floor.tcl	
+tk-demos/form.tcl	
+tk-demos/hello
+tk-demos/hscale.tcl	
+tk-demos/icon.tcl	
+tk-demos/image1.tcl	
+tk-demos/image2.tcl	
+tk-demos/items.tcl	
+tk-demos/ixset
+tk-demos/label.pl	
+tk-demos/label.tcl	
+tk-demos/labelframe.tcl	
+tk-demos/license.terms
+tk-demos/menu.tcl
+tk-demos/menubu.tcl
+tk-demos/msgbox.tcl
+tk-demos/paned1.tcl
+tk-demos/paned2.tcl
+tk-demos/plot.tcl
+tk-demos/puzzle.tcl
+tk-demos/radio.tcl
+tk-demos/README
+tk-demos/rmt
+tk-demos/rolodex
+tk-demos/ruler.tcl
+tk-demos/sayings.tcl
+tk-demos/search.tcl
+tk-demos/spin.tcl
+tk-demos/square
+tk-demos/states.tcl
+tk-demos/style.pl
+tk-demos/style.tcl
+tk-demos/tcolor
+tk-demos/text.tcl
+tk-demos/timer
+tk-demos/twind.tcl
+tk-demos/unicodeout.pl
+tk-demos/unicodeout.tcl
+tk-demos/vscale.tcl
+tk-demos/widget
+tk-demos/widget.pl
+tk-demos/images/earth.gif
+tk-demos/images/earthris.gif
+tk-demos/images/face.bmp
+tk-demos/images/flagdown.bmp
+tk-demos/images/flagup.bmp
+tk-demos/images/gray25.bmp
+tk-demos/images/letters.bmp
+tk-demos/images/noletter.bmp
+tk-demos/images/pattern.bmp
+tk-demos/images/tcllogo.gif
+tk-demos/images/teapot.ppm

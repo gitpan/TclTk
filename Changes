@@ -1,0 +1,14 @@
+Revision history for Perl extension Inline.
+
+0.4	19-may-2003, Vadim Konovalov
+	- changed version system and added module VERSION variable
+	- compatibility changes to support modern versions of Perl and Tcl
+	  (perl-5.6.0, perl-5.8.0, tcl-8.4.2)
+	- Makefile.PL changed to be more consistent
+	- implemented event fields
+	- added all files for 'widget' demo from Tcl/Tk distribution
+	- changed demos from tcl/tk distribution to run from current system:
+	  widget.pl, style.pl, unicodeout.pl, colors.pl, label.pl
+
+Tcl-b2 1997, Malcolm Beattie
+	- Created entire module.

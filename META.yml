@@ -1,0 +1,16 @@
+# http://module-build.sourceforge.net/META-spec.html
+name:         TclTk
+version_from: Tk.pm
+installdirs:  site
+requires:
+  Tcl::Tk: 0.6
+index:
+  file:
+  - Tk.pm
+keywords:
+- Tk
+- Tcl/Tk/Tix
+- GUI
+auto_regenerate: false
+distribution_type: module
+generated_by: ExtUtils::MakeMaker version 6.21_01

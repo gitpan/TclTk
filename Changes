@@ -1,5 +1,21 @@
 Revision history for Perl extension Tcl::Tk.
 
+0.75	28-mar-2004, Vadim Konovalov
+	- pannedwindow => panedwindow (Jeff Hobbs)
+	- DEBUG now off by default
+	- Meta.yml
+	- README
+	- perlTk compatibility:
+	  * Listbox/perlTk => listbox
+	  * Tcl::Tk::Exists (Tk::Exists)
+	  * 'Darken' widget method (borrowed from Widget.pm/perlTk)
+	  * 'timer' behaves like widget
+	  * replaced options now could be subroutine ref
+	  * canvas bind
+	  * Photo
+	  * Menu, Menubutton much more capable now
+	  * few others (wm, winfo, ...)
+
 0.74	21-mar-2004, Vadim Konovalov
 	- accept many changes from Jeff Hobbs, TCL guru and lead developer:
 	  * pannedwindow

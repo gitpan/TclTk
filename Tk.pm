@@ -7,7 +7,9 @@ use DynaLoader;
 use vars qw(@ISA @EXPORT_OK %EXPORT_TAGS);
 @ISA = qw(Exporter DynaLoader);
 
-$Tcl::Tk::VERSION = '0.74';
+$Tcl::Tk::VERSION = '0.75';
+
+$::Tcl::Tk::DEBUG = 0;
 
 =head1 NAME
 
@@ -277,7 +279,7 @@ See http://www.perl.com/perl/misc/Artistic.html
 my @widgets = 
     qw(frame toplevel label labelframe button checkbutton radiobutton scale
        mainwindow message listbox scrollbar spinbox entry menu menubutton 
-       canvas text pannedwindow
+       canvas text panedwindow
        widget awidget awidgets
      );
 my @misc = qw(MainLoop after destroy focus grab lower option place raise
@@ -330,6 +332,10 @@ sub new {
     $i->SetVar2("env", "DISPLAY", $display, Tcl::GLOBAL_ONLY);
     $i->SetVar("argv0", $0, Tcl::GLOBAL_ONLY);
     $i->SetVar("argc", scalar(@main::ARGV), Tcl::GLOBAL_ONLY);
+    if (defined $::tcl_library) {
+      # hack to redefine search path for TCL installation
+      $i->SetVar('tcl_library',$::tcl_library);
+    }
     $i->ResetResult();
     push(@argv, "--", @ARGV);
     $i->AppendElement($_) for @argv;
@@ -499,6 +505,18 @@ sub widget($@) {
         return $int->declare_widget($wpath);
     }
 }
+sub Exists($) {
+    return 0 if $#_<0;
+    my $wid = shift;
+    if (ref($wid)=~/^Tcl::Tk::Widget\b/) {
+        my $wp = $wid->path;
+        return $wint{$wp}->call('winfo','exists',$wp);
+    }
+    return $tkinterp->call('winfo','exists',$wid);
+}
+# do this only when tk_gestapo on? In normal case Tcl::Tk::Exists should be used...
+*{Tk::Exists} = \&Tcl::Tk::Exists;
+
 sub widgets {
     \%w;
 }
@@ -577,7 +595,6 @@ sub grid {
     my $int = (ref $_[0]?shift:$tkinterp);
     $int->call("grid", @_);
 }
-# bind and pack geometry methods
 sub bind {
     my $int = shift;
     $int->call("bind", @_);
@@ -593,6 +610,9 @@ sub need_tk {
     return if exists $preloaded_tk{$what};
     if ($what eq 'Tix') {
 	$int->Eval("package require Tix");
+    }
+    elsif ($what eq 'Img') {
+	$int->Eval("package require Img");
     }
     elsif ($what eq 'BWidget') {
 	$int->Eval("package require BWidget;ScrolledWindow::use"); # TODO
@@ -627,7 +647,32 @@ EOS
 
 package Tcl::Tk::Widget;
 
-sub DEBUG() {1}
+sub DEBUG() {$::Tcl::Tk::DEBUG}
+
+if (DEBUG()) {
+    unshift @INC, \&tk_gestapo;
+}
+
+sub tk_gestapo {
+    # When placed first on the INC path, this will allow us to hijack
+    # any requests for 'use Tk' and any Tk::* modules and replace them
+    # with our own stuff.
+    my ($coderef, $filename) = @_;  # $coderef is to myself
+    return undef unless $filename =~ m!^Tk(/|\.pm$)!;
+
+    my $fakefile;
+    open(my $fh, '<', \$fakefile) || die "oops";
+
+    $filename =~ s!/!::!g;
+    $filename =~ s/\.pm$//;
+    $fakefile = <<EOS;
+package $filename;
+warn "### You are not really loading $filename ###";
+sub foo { 1; }
+1;
+EOS
+    return $fh;
+}
 
 sub path {${$_[0]}}
 # returns interpreter that is associated with widget
@@ -658,8 +703,14 @@ sub place {
 }
 sub bind {
     my $self = shift;
-    $wint{$$self}->call("bind",$$self,@_);
-    $self;
+    # 'text' and 'canvas' binding could be different compared to common case
+    # as long as Text uses 'tag bind' then we do not need to process it here
+    if (ref($self) eq 'Tcl::Tk::Widget::Canvas') {
+        $wint{$$self}->call($$self,'bind',@_);
+    }
+    else {
+	$wint{$$self}->call("bind",$self->path,@_);
+    }
 }
 sub form {
     my $self = shift;
@@ -697,15 +748,71 @@ sub geometry {
     my $wp = $self->path;
     $wint{$$self}->call('wm','geometry',$wp,@_);
 }
+sub GeometryRequest {
+    my $self = shift;
+    my $wp = $self->path;
+    my ($width,$height) = @_;
+    $wint{$$self}->call('wm','geometry',$wp,"=${width}x$height");
+}
+sub OnDestroy {
+    my $self = shift;
+    my $wp = $self->path;
+    $wint{$$self}->call('bind','Destroy',$wp,@_);
+}
+sub grab {
+    my $self = shift;
+    my $wp = $self->path;
+    $wint{$$self}->call('grab',$wp,@_);
+}
+sub grabRelease {
+    my $self = shift;
+    my $wp = $self->path;
+    $wint{$$self}->call('grab','release',$wp,@_);
+}
 sub protocol {
     my $self = shift;
     my $wp = $self->path;
     $wint{$$self}->call('wm','protocol',$wp,@_);
 }
+sub title {
+    my $self = shift;
+    my $wp = $self->path;
+    $wint{$$self}->call('wm','title',$wp,@_);
+}
 sub reqwidth {
     my $self = shift;
     my $wp = $self->path;
     return $wint{$$self}->call('winfo','reqwidth',$wp,@_);
+}
+sub reqheight {
+    my $self = shift;
+    my $wp = $self->path;
+    return $wint{$$self}->call('winfo','reqheight',$wp,@_);
+}
+sub screenheight {
+    my $self = shift;
+    my $wp = $self->path;
+    return $wint{$$self}->call('winfo','screenheight',$wp,@_);
+}
+sub screenwidth {
+    my $self = shift;
+    my $wp = $self->path;
+    return $wint{$$self}->call('winfo','screenwidth',$wp,@_);
+}
+sub height {
+    my $self = shift;
+    my $wp = $self->path;
+    $wint{$$self}->call('winfo', 'height', $wp, @_);
+}
+sub width {
+    my $self = shift;
+    my $wp = $self->path;
+    $wint{$$self}->call('winfo', 'width', $wp, @_);
+}
+sub rgb {
+    my $self = shift;
+    my $wp = $self->path;
+    $wint{$$self}->call('winfo', 'rgb', $wp, @_);
 }
 sub children {
     my $self = shift;
@@ -731,17 +838,73 @@ sub fontNames {
     my $self = shift;
     $wint{$$self}->call('font','names',@_);
 }
+sub idletasks {
+    my $self = shift;
+    $wint{$$self}->call('update','idletasks',@_);
+}
 sub update {
     my $self = shift;
     $wint{$$self}->update;
 }
 sub font {
-  my $self = shift;
-  $wint{$$self}->call('font', @_);
+    my $self = shift;
+    $wint{$$self}->call('font', @_);
 }
 sub waitVariable {
-  my $self = shift;
-  $wint{$$self}->call('tkwait', 'variable', @_);
+    my $self = shift;
+    $wint{$$self}->call('tkwait', 'variable', @_);
+}
+
+# TODO all Busy subs
+sub Busy {
+    my $self = shift;
+    print STDERR "Busy = TODO\n";
+    $self;
+}
+sub Unbusy {
+    my $self = shift;
+    print STDERR "Unbusy = TODO\n";
+    $self;
+}
+
+# subroutine Darken copied from perlTk/Widget.pm
+# tkDarken --
+# Given a color name, computes a new color value that darkens (or
+# brightens) the given color by a given percent.
+#
+# Arguments:
+# color - Name of starting color.
+# perecent - Integer telling how much to brighten or darken as a
+# percent: 50 means darken by 50%, 110 means brighten
+# by 10%.
+sub Darken
+{
+ my ($w,$color,$percent) = @_;
+ my @l = $w->rgb($color);
+ my $red = $l[0]/256;
+ my $green = $l[1]/256;
+ my $blue = $l[2]/256;
+ $red = int($red*$percent/100);
+ $red = 255 if ($red > 255);
+ $green = int($green*$percent/100);
+ $green = 255 if ($green > 255);
+ $blue = int($blue*$percent/100);
+ $blue = 255 if ($blue > 255);
+ sprintf('#%02x%02x%02x',$red,$green,$blue)
+}
+
+
+# althought this is not the case, we'll think of object returned by 'after'
+# as a widget.
+sub after {
+    my $self = shift;
+    my $int = $wint{$$self};
+    my $ret = $int->call('after', @_);
+    return $int->declare_widget($ret);
+}
+sub cancel {
+    my $self = shift;
+    return $wint{$$self}->call('after','cancel',$$self);
 }
 
 #
@@ -774,6 +937,7 @@ my %ptk2tcltk = (
     Canvas => 'canvas',
     #LabFrame => 'labelframe',
     Label => 'label',
+    Listbox => 'listbox',
     Entry => 'entry',
     Message => 'message',
     Frame => 'frame',
@@ -798,6 +962,7 @@ my %ptk2tcltk_pref =
 	TextUndo ut
 	Canvas can
 	Label lbl
+	Listbox lbox
 	Entry ent
 	Message msg
 	Frame f
@@ -820,6 +985,7 @@ my %replace_options =
     (
      tixHList => {separator=>'-separator'},
      table => {-columns=>'-cols'},
+     toplevel => {-title=>sub{shift->title(@_)},OnDestroy=>sub{}},
      labelframe => {-label=>'-text', -labelside => undef},
      );
 my %pure_perl_tk = (); # hash to keep track of pure-perl widgets
@@ -827,6 +993,7 @@ sub create_ptk_widget_sub {
     my ($wtype) = @_;
     my ($ttktype,$wpref) = ($ptk2tcltk{$wtype},$ptk2tcltk_pref{$wtype});
     if ($wtype eq 'HList') {$tkinterp->need_tk('HList')}
+    elsif ($wtype eq 'Photo') {$tkinterp->need_tk('Img')}
     elsif ($wtype eq 'Table') {
 	#$tkinterp->need_tk('pure-perl-Tk');
 	#$tkinterp->need_tk('ptk-Table');
@@ -850,16 +1017,25 @@ sub create_ptk_widget_sub {
 	    my $int = $wint{$$self};
 	    my $w    = w_uniq($self, $wpref); # create uniq pref's widget id
 	    my %args = @_;
+	    my @code_todo;
 	    for (keys %{$replace_options{$ttktype}}) {
 		if (defined($replace_options{$ttktype}->{$_})) {
-		    $args{$replace_options{$ttktype}->{$_}} =
-			delete $args{$_} if exists $args{$_};
+		    if (exists $args{$_}) {
+		        if (ref($replace_options{$ttktype}->{$_}) eq 'CODE') {
+			    push @code_todo, [$replace_options{$ttktype}->{$_}, delete $args{$_}];
+			}
+			else {
+			    $args{$replace_options{$ttktype}->{$_}} =
+			        delete $args{$_};
+			}
+		    }
 		} else {
 		    delete $args{$_} if exists $args{$_};
 		}
 	    }
 	    my $wid = $int->declare_widget($int->call($ttktype,$w,%args));
 	    bless $wid, "Tcl::Tk::Widget::$wtype";
+	    $_->[0]->($wid,$_->[1]) for @code_todo;
 	    return $wid;
 	};
     }
@@ -896,22 +1072,44 @@ sub LabFrame {
     };
     return $lf;
 }
-sub Menubutton {
-    my $self = shift; # this will be a parent widget for newer menubutton
-    my $int = $wint{$$self};
-    my $w    = w_uniq($self, "mb"); # create uniq pref's widget id
+
+# menu compatibility
+sub _process_menuitems;
+# internal sub helper for menu
+sub _addcascade {
+    my $mnu = shift;
+    my $int = $wint{$$mnu};
+    my $smnu = Menu($mnu); # return unique widget id
+    print STDERR "cascade(@_) of $$mnu is $$smnu\n" if DEBUG();
     my %args = @_;
-    my $mcnt = '01';
+    my $tearoff = delete $args{'-tearoff'};
+    if (defined($tearoff)) {
+        $smnu->configure(-tearoff => $tearoff);
+    }
+    $args{'-menu'} = $smnu;
     my $mis = delete $args{'-menuitems'};
-    $args{'-state'} = delete $args{state} if exists $args{state};
-    my $mnub = $int->menubutton($w, -menu=>,"$w.m", %args);
-    my $mnu  = $int->menu($w . ".m");
+    _process_menuitems($int,$mnu,$mis);
+    $int->call("$$mnu",'add','cascade', %args);
+    return $smnu;
+}
+# internal helper sub to process perlTk's -menuitmes option
+sub _process_menuitems {
+    my ($int,$mnu,$mis) = @_;
     for (@$mis) {
 	if (ref) {
 	    my $label = $_->[1];
 	    my %a = @$_[2..$#$_];
 	    $a{'-state'} = delete $a{state} if exists $a{state};
-	    $int->call($mnu,'add',$_->[0],'-label',$label, %a);
+	    my $cmd = $_->[0];
+	    if ($cmd eq 'Separator') {$int->call($mnu,'add','separator');}
+	    elsif ($cmd eq 'Cascade') {
+	        _addcascade($mnu,-label=>$label, %a);
+	    }
+	    else {
+		$cmd=~s/^Button$/command/;
+		$cmd=~s/^Checkbutton$/checkbutton/;
+	        $int->call($mnu,'add',$cmd,'-label',"$label", %a);
+	    }
 	}
 	else {
 	    if ($_ eq '-') {
@@ -922,7 +1120,21 @@ sub Menubutton {
 	    }
 	}
     }
+}
+sub Menubutton {
+    my $self = shift; # this will be a parent widget for newer menubutton
+    my $int = $wint{$$self};
+    my $w    = w_uniq($self, "mb"); # create uniq pref's widget id
+    my %args = @_;
+    my $mcnt = '01';
+    my $mis = delete $args{'-menuitems'};
+    my $tearoff = delete $args{'-tearoff'};
+    $args{'-state'} = delete $args{state} if exists $args{state};
+    my $mnub = $int->menubutton($w, -menu=>,"$w.m", %args);
+    my $mnu  = $int->menu($w . ".m");
+    _process_menuitems($int,$mnu,$mis);
     $int->update if DEBUG;
+
     # TODO implement better:
     $special_widget_abilities{$$mnub} = {
 	command=>sub {
@@ -949,24 +1161,9 @@ sub Menu {
     print STDERR "calling Menu (@_)\n" if DEBUG;
 
     my $mnu = $int->menu($w, %args);
-    #$int->call($mnu,'add','cascade', map {s/^-text$/-label/;$_} %args);
-    for (@$mis) {
-	if (ref) {
-	    my $label = $_->[1];
-	    my %a = @$_[2..$#$_];
-	    $a{'-state'} = delete $a{state} if exists $a{state};
-	    $int->call($mnu,'add',$_->[0],'-label',$label, %a);
-	}
-	else {
-	    if ($_ eq '-') {
-		$int->call($mnu,'add','separator');
-	    }
-	    else {
-		die "in menubutton: '$_' not implemented";
-	    }
-	}
-    }
+    _process_menuitems($int,$mnu,$mis);
     $int->update if DEBUG;
+
     # TODO implement better:
     $special_widget_abilities{$$mnu} = {
 	command => sub {
@@ -976,33 +1173,7 @@ sub Menu {
 	    $int->call("$$mnu",'add','checkbutton',@_);
 	},
 	cascade => sub {
-	    if (0) {
-		my $w = w_uniq($mnu, "menu"); # return unique widget id
-		my $smnu = $int->menu($w);
-		print STDERR "cascade(@_) of $$mnu is $$smnu\n" if DEBUG();
-		if (1) {
-		    my %args = @_;
-		    my $tearoff = delete $args{'-tearoff'};
-		    if (defined($tearoff)) {
-			print STDERR "change $$smnu -tearoff $tearoff\n" if DEBUG();
-			$smnu->configure(-tearoff => $tearoff);
-		    }
-		}
-		$args{'-menu'} = $smnu;
-		$int->call("$$mnu",'add','cascade', %args);
-	    } else {
-		my $smnu = Menu($mnu); # return unique widget id
-		print STDERR "cascade(@_) of $$mnu is $$smnu\n" if DEBUG();
-		my %args = @_;
-		my $tearoff = delete $args{'-tearoff'};
-		if (defined($tearoff)) {
-		    print STDERR "change $$smnu -tearoff $tearoff\n" if DEBUG();
-		    $smnu->configure(-tearoff => $tearoff);
-		}
-		$args{'-menu'} = $smnu;
-		$int->call("$$mnu",'add','cascade', %args);
-		return $smnu;
-	    }
+	    _addcascade($mnu, @_);
 	},
 	separator => sub {
 	    $int->call("$$mnu",'add','separator',@_);
@@ -1021,7 +1192,6 @@ sub Balloon {
     my $bw = $int->declare_widget($int->call('tixBalloon', $w, @_));
     $special_widget_abilities{$w} = {
 	attach=>sub {
-	    print STDERR "===@_===\n";
 	    my $w = shift;
 	    my %args=@_;
 	    delete $args{$_} for qw(-postcommand -motioncommand -balloonposition); # TODO!
@@ -1032,11 +1202,15 @@ sub Balloon {
 	    }
 	    $int->call($bw,'bind',$w,%args);
 	},
+	detach=>sub {
+	    my $w = shift;
+	    $int->call($bw,'unbind',$w,@_);
+	},
     };
     return $bw;
 }
 sub NoteBook {
-    my $self = shift; # this will be a parent widget for newer balloon
+    my $self = shift; # this will be a parent widget for newer notebook
     my $int = $wint{$$self};
     my $w    = w_uniq($self, "nb"); # return unique widget id
     $int->need_tk('NoteBook');
@@ -1048,6 +1222,14 @@ sub NoteBook {
 	    return $ww;
 	},
     };
+    return $bw;
+}
+sub Photo {
+    my $self = shift; # this will be a parent widget for newer Photo
+    my $int = $wint{$$self};
+    my $w    = w_uniq($self, "pht"); # return unique widget id
+    $int->need_tk('Img');
+    my $bw = $int->declare_widget($int->call('image','create', 'photo', @_));
     return $bw;
 }
 
@@ -1216,12 +1398,12 @@ use vars qw/@ISA/;
 sub DESTROY {}			# do not let AUTOLOAD catch this method
 
 sub AUTOLOAD {
-    print STDERR "<<@_>>\n";
+    print STDERR "<<@_>>\n" if $::Tcl::Tk::DEBUG;
     $::Tcl::Tk::Widget::AUTOLOAD = $::Tcl::Tk::Widget::[[widget-repl]]::AUTOLOAD;
     return &Tcl::Tk::Widget::AUTOLOAD;
 }
 1;
-print STDERR "<<starting [[widget-repl]]>>\n";
+print STDERR "<<starting [[widget-repl]]>>\n" if $::Tcl::Tk::DEBUG;
 EOWIDG
 }
 

@@ -45,6 +45,9 @@ WriteMakefile(
 	NAME => "Tcl::Tk",
 	DISTNAME => "TclTk",
 	VERSION_FROM => 'Tk.pm',
+	NORECURS => 1,
+	PL_FILES => {},
+	PM => {'Tk.pm'=>'$(INST_LIBDIR)/Tcl/Tk.pm'},
 	PREREQ_PM => {
 		Tcl => 0.6,
 	},

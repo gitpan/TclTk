@@ -7,8 +7,14 @@ README		Introduction to the Tcl::Tk extension
 Tk.pm		Tcl::Tk extension module
 Tk.xs		Tcl::Tk extension implementation
 typemap		Tcl::Tk extension types
+META.yml
 t/after.t
+t/photo.t
+t/folder.xpm
+t/Tk.xbm
+t/Xcamel.gif
 t/text.t
+t/zzPhoto.t
 demos/demo.pl		simple demo script
 demos/demo-w-tix.pl	simple demo script with tix 'form' geometry manager
 demos/wcolors.pl	demo script with syntax very similar to perlTk

@@ -1,5 +1,12 @@
 Revision history for Perl extension Tcl::Tk.
 
+0.72	20-aug-2003, Vadim Konovalov
+	- provide very similar syntax as in perlTk, for SRC-level compatibility
+	  (widget methods Text, Button, Frame and so on)
+	  But need more and better documentation
+	- documentation fixes
+	- demos/wcolors.pl added to illustrate 'use Tcl::Tk qw(:perlTk);'
+
 0.7	02-jul-2003, Vadim Konovalov
 	- more 'tk-demos' implemented scripts (search.pl)
         - some fixes from Slaven Rezic

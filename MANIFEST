@@ -9,6 +9,7 @@ Tk.xs		Tcl::Tk extension implementation
 typemap		Tcl::Tk extension types
 demos/demo.pl		simple demo script
 demos/demo-w-tix.pl	simple demo script with tix 'form' geometry manager
+demos/wcolors.pl	demo script with syntax very similar to perlTk
 tk-demos/arrow.tcl
 tk-demos/bind.pl
 tk-demos/bitmap.tcl	

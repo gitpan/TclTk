@@ -1,0 +1,8 @@
+Copying		The GNU General Public License
+INSTALL		Installation instructions
+MANIFEST	This list of files
+Makefile.PL	Tcl::Tk extension makefile writer
+README		Introduction to the Tcl::Tk extension
+Tk.pm		Tcl::Tk extension module
+Tk.xs		Tcl::Tk extension implementation
+typemap		Tcl::Tk extension types

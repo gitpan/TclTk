@@ -1,0 +1,31 @@
+PREREQUISITES
+
+* perl5.001 (or newer version)
+* The Tcl extension
+
+BUILDING
+
+This extension is designed to build in the standard way for perl5
+extensions:
+
+1. Extract the distribution anywhere *away* from the perl5 source tree.
+
+2. Change directory to the top of this hierarchy (....../TclTk).
+
+3. Tweak Makefile.PL if necessary--if your Tcl or Tk include files are
+neither in /usr/local/include nor in /usr/include/tcl then put the
+appropriate path in the INC line. If your Tk libraries are not found
+by default then add the appropriate -L options to the LIBS line.
+
+4. Type
+    perl Makefile.PL
+
+5. To build as a dynamic extension, if your platform supports it, type
+    make
+although a problem with OSF/1 make makes it necessary instead to type
+    make dynamic
+To build a perl executable in the current directory which is statically
+linked with this extension type
+    make perl
+If you want to build a static perl with more extensions, use the makeaperl
+script that comes with the perl5 distribution.

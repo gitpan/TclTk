@@ -23,15 +23,19 @@ if ($@) {
 my $tk_version = $interp->GetVar('tk_version');
 print STDERR "tcl_version=$tcl_version; tk_version=$tk_version\n";
 
-if ($^O eq 'MSWin32') {
+if ($^O =~ /^(MSWin32|freebsd)$/) {
+    $incpath = "-I/usr/local/include/tcl$tcl_version -I/usr/local/include/tk$tk_version";
     s/\.// for $tcl_version, $tk_version;
     $tcl_library =~ /^(.*)[\\\/]lib[\\\/]/;
     $libpath = "-L$1/lib";
-    $incpath = "-I$1/include";
+    $incpath .= " -I$1/include";
 }
 else {
     $libpref = '';
     $_='' for $tcl_version, $tk_version;
+}
+
+if ($^O ne 'MSWin32') {
     $incpath .= " -I/usr/X11R6/include";
 }
 

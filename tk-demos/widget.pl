@@ -12,20 +12,21 @@
 use strict;
 use Tcl;
 use Tcl::Tk qw(:widgets :misc);
+use FindBin;
 
-if ($0=~/^(.*)[\\\/][^\\\/]+$/) {
-    chdir $1;
-}
+chdir $FindBin::RealBin;
 
 my $interp = new Tcl::Tk;
 $::interp=$interp;
 
 wm('title', '.', "Widget Demonstration");
-if ($interp->Eval('return $tcl_platform(platform)') eq "unix") {
+if ($interp->GetVar2('tcl_platform','platform') eq "unix") {
     # This won't work everywhere, but there's no other way in core Tk
     # at the moment to display a coloured icon.
-    image(qw(create photo TclPowered -file 'images/logo64.gif'));
-    wm('iconwindow', '.', toplevel("._iconWindow"));
+    image(qw(create photo TclPowered -file),
+          $interp->GetVar('tk_library') . "/images/logo64.gif");
+    toplevel("._iconWindow");
+    wm('iconwindow', '.', "._iconWindow");
     label("._iconWindow.i", -image=>"TclPowered")->pack;
     wm('iconname', '.', "tkWidgetDemo");
 }
@@ -52,7 +53,7 @@ menu '.menuBar.file', -tearoff => 0;
 
 
 # On the Mac use the specia .apple menu for the about item
-if ($interp->Eval("tk windowingsystem") eq "classic") {
+if (eval{$interp->Eval("tk windowingsystem")} eq "classic") {
     widget('.menuBar')->add('cascade', -menu=>".menuBar.apple");
     menu(".menuBar.apple", -tearoff=>0);
     widget('.menuBar.apple')->add('command', -label => "About...", -command => sub {&aboutBox});
@@ -183,7 +184,7 @@ addDemoSection "Text", <<EOS=~/^\s*(\S+)\s+"(.*?)"\n/gm;
     style	"(***) Text display styles"
     bind	"(***)(1-3 impl.) Hypertext (tag bindings)"
     twind	"(***) A text widget with embedded windows"
-    search	"A search tool built with a text widget"
+    search	"(***) A search tool built with a text widget"
 EOS
 addDemoSection "Canvases", <<EOS=~/^\s*(\S+)\s+"(.*?)"\n/gm;
     items	"(***)The canvas item types"

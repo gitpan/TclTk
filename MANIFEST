@@ -45,10 +45,9 @@ tk-demos/puzzle.pl
 tk-demos/radio.pl
 tk-demos/README
 tk-demos/rmt
-tk-demos/rolodex
 tk-demos/ruler.tcl
 tk-demos/sayings.pl
-tk-demos/search.tcl
+tk-demos/search.pl
 tk-demos/spin.pl
 tk-demos/square
 tk-demos/states.pl

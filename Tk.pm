@@ -4,9 +4,10 @@ use strict;
 use Tcl;
 use Exporter;
 use DynaLoader;
-our @ISA = qw(Exporter DynaLoader);
+use vars qw(@ISA @EXPORT_OK %EXPORT_TAGS);
+@ISA = qw(Exporter DynaLoader);
 
-$Tcl::Tk::VERSION = '0.6';
+$Tcl::Tk::VERSION = '0.7';
 
 =head1 NAME
 
@@ -25,11 +26,9 @@ Or
     use Tcl::Tk;
     $interp = new Tcl::Tk;
     $interp->label(".l", -text => "Hello world")->pack;
-    my $btn;
     $btn = $interp->button(".btn", -text => "test", -command => sub {
       $btn->configure(-text=>"[". $btn->cget('-text')."]");
-    });
-    $btn->pack;
+    })->pack;
     $interp->MainLoop;
 
 =head1 DESCRIPTION
@@ -39,7 +38,7 @@ It does this by creating a Tcl interpreter object (using the Tcl extension)
 and binding in all of Tk into the interpreter (in the same way that
 B<wish> or other Tcl/Tk applications do).
 
-Unlike perl-tk extension (available on CPAN), where Tcl+Tk+Tix is embedded
+Unlike perl-tk extension (available on CPAN), where Tcl+Tk+Tix are embedded
 into extension, this module connects to existing TCL installation. Such
 approach allows to work with most up-to-date TCL, and this automatically gives
 Unicode and pure TCL widgets available to application along with any widgets
@@ -117,15 +116,19 @@ or you can use the pre-defined Exporter tags B<:widgets> and B<:misc>.
 The B<:widgets> tag imports all the widget commands and the B<:misc>
 tag imports all non-widget commands (see the next section).
 
-Let's return to the creation of the label widget above. Since Tcl/Tk
-creates a command ".l" in the interpreter and creating a similarly
-named sub in Perl isn't a good idea, the Tcl::Tk extension provides a
-slightly more convenient way of manipulating the widget. Instead of
-returning the name of the new widget as a string, the above label
-command returns a Perl reference to the widget's name, blessed into an
-almost empty class. Perl method calls on the object are translated
-into commands for the Tcl/Tk interpreter in a very simplistic
-fashion. For example, the Perl command
+When creating a widget, you must specify its path as first argument.
+Widget path is a string starting with a dot and consisting of several
+names separated by dots. These names are widget names that comprise
+widget's hierarchy. As an example, if there exists a frame with a path
+".fram" and you want to create a button on it and name it "butt" then
+you should specify name ".fram.butt". Widget paths are refered in
+miscellaneous widget operations, and geometry management is one of them.
+Once again, see Tcl/Tk documentation to get details.
+
+Widget creation command returns a Perl object that could be used further
+for operations with widget. Perl method calls on the object are translated
+into commands for the Tcl/Tk interpreter in a very simplistic fashion.
+For example, the Perl command
 
     $l->configure(-background => "green");
 
@@ -139,6 +142,82 @@ happens: if you use a Tcl command which wants a widget pathname and you
 only have an object returned by C<label()> (or C<button()> or C<entry()>
 or whatever) then you must dereference it yourself.
 
+When widgets are created they are stored internally and could be retreiwed
+by C<widget()> command:
+
+    widget(".fram.butt")->configure(-text=>"new text");
+   
+Please note that this method will return to you a widget object even if it was
+not created within this module, and check will not be performed whether a 
+widget with given path exists, despite of fact that checking for existence of
+a widget is an easy task (invoking $interp->Eval("info commands $path") will
+do this). Instead, you will receive perl object that will try to operate with
+widget that has given path even if such path do not exists. 
+
+This approach allows to transparently access widgets created in Tcl way. So
+variable $btn in following code will behave exactly as if it was created
+with "button" method:
+
+    $interp->Eval(<<'EOS');
+    frame .f
+    button .f.b
+    pack .f
+    pack .f.b
+    EOS
+    my $btn = widget(".f.b");
+
+Note, that currently C<widget()> methods does not checks whether required 
+widget actually exists in Tk, and, if widget was created from Tcl/Tk, it will
+not be retrieved by this method.
+NOTE! this could change in future versions, so please do not use this method
+to check whether a widget with certain path exists.
+
+C<awidget> method
+
+If you know there exists a method that creates widget in Tcl/Tk but it
+is not implemented as a part of this module, use C<awidget> method (mnemonic
+- "a widget" or "any widget"). C<awidget>, as method of interpreter object,
+creates a subroutine inside Tcl::Tk package and this subroutine could be
+invoked as a method for creating desired widget. After such call any 
+interpreter can create required widget.
+
+If there are more than one arguments provided to C<awidget> method, then
+newly created method will be invoked with remaining arguments:
+
+  $interp->awidget('tixTList');
+  $interp->tixTList('.f.tlist');
+
+does same thing as
+
+  $interp->awidget('tixTList', '.f.tlist');
+
+C<awidgets> method
+
+C<awidgets> method takes a list consisting of widget names and calls
+C<awidget> method for each of them.
+
+Widget creation commands are methods of Tcl::Tk interpreter object. But if
+you want to omit interpreter for brevity, then you could do it, and in this
+case will be used interpreter that was created first. Following examples
+demonstrate this:
+
+    use Tcl::Tk qw(:widgets :misc);
+    $interp = new Tcl::Tk;
+
+    # at next line interpreter object omited, but $interp is implicitly used
+    label ".l", -text => "Hello world"; 
+    
+    tkpack ".l"; # $interp will be called to pack ".l"
+    
+    # OO way, we explicitly use methods of $interp to create button
+    $btn = $interp->button(".btn", -text => "test", -command => sub {
+      $btn->configure(-text=>"[". $btn->cget('-text')."]");
+    });
+    $btn->pack; # another way to pack a widget
+
+    $interp->MainLoop;
+
+
 =head2 Non-widget Tk commands
 
 For convenience, the non-widget Tk commands (such as C<destroy>,
@@ -147,8 +226,10 @@ Perl commands and translate into into their Tcl equivalents for
 execution in your Tk/Tcl interpreter. The names of the Perl commands
 are the same as their Tcl equivalents except for two: Tcl's C<pack>
 command becomes C<tkpack> in Perl and Tcl's C<bind> command becomes
-C<tkbind> in Perl. The arguments you pass to any of these Perl
-commands are not touched by the Tcl parser: each Perl argument is
+C<tkbind> in Perl. But those two commands are C<pack> and C<bind> when
+used as method of interpreter, because this way we avoid confusion with
+Perl internal C<pack> and C<bind>. The arguments you pass to any of these
+Perl commands are not touched by the Tcl parser: each Perl argument is
 passed as a separate argument to the Tcl command.
 
 =head2 BUGS
@@ -156,10 +237,9 @@ passed as a separate argument to the Tcl command.
 Currently work is in progress, and some features could change in future
 versions.
 
-=head2 AUTHOR
+=head2 AUTHORS
 
 Malcolm Beattie, mbeattie@sable.ox.ac.uk
-
 Vadim Konovalov, vkonovalov@peterstar.ru, 19 May 2003.
 
 =head2 COPYRIGHT
@@ -173,13 +253,13 @@ See http://www.perl.com/perl/misc/Artistic.html
 my @widgets = qw(frame toplevel label labelframe button checkbutton radiobutton scale
 		 mainwindow message listbox scrollbar spinbox entry menu menubutton 
 		 canvas text
-		 widget
+		 widget awidget awidgets
 		);
 my @misc = qw(MainLoop after destroy focus grab lower option place raise
               image
 	      selection tk tkbind tkpack grid tkwait update winfo wm);
-our @EXPORT_OK = (@widgets, @misc);
-our %EXPORT_TAGS = (widgets => \@widgets, misc => \@misc);
+@EXPORT_OK = (@widgets, @misc);
+%EXPORT_TAGS = (widgets => \@widgets, misc => \@misc);
 
 ## TODO -- module's private $tkinterp should go away!
 my $tkinterp = undef;		# this gets defined when "new" is done
@@ -230,17 +310,21 @@ sub new {
     return $i;
 }
 
+sub declare_widget {
+    my $int = shift;
+    my $path = shift;
+    $wint{$path} = $int;
+    return $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+}
 sub frame($@) {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("frame", @_);
-    $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("frame", @_);
+    return $int->declare_widget($path);
 }
 sub toplevel {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("toplevel", @_);
-     $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("toplevel", @_);
+    return $int->declare_widget($path);
 }
 sub mainwindow {
     # this is a window with path '.'
@@ -248,110 +332,131 @@ sub mainwindow {
 }
 sub label {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("label", @_);
-    $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("label", @_);
+    return $int->declare_widget($path);
 }
 sub labelframe {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("labelframe", @_);
-    $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("labelframe", @_);
+    return $int->declare_widget($path);
 }
 sub button {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("button", @_);
-    $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("button", @_);
+    return $int->declare_widget($path);
 }
 sub checkbutton {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("checkbutton", @_);
-    $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("checkbutton", @_);
+    return $int->declare_widget($path);
 }
 sub radiobutton {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("radiobutton", @_);
-    $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("radiobutton", @_);
+    return $int->declare_widget($path);
 }
 sub scale {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("scale", @_);
-    $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("scale", @_);
+    return $int->declare_widget($path);
 }
 sub spinbox {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("spinbox", @_);
-    $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("spinbox", @_);
+    return $int->declare_widget($path);
 }
 sub message {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("message", @_);
-    $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("message", @_);
+    return $int->declare_widget($path);
 }
 sub listbox {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("listbox", @_);
-    $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("listbox", @_);
+    return $int->declare_widget($path);
 }
 sub image {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("image", @_);
-    $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("image", @_);
+    return $int->declare_widget($path);
 }
 sub scrollbar {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("scrollbar", @_);
-    $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("scrollbar", @_);
+    return $int->declare_widget($path);
 }
 sub entry {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("entry", @_);
-    $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("entry", @_);
+    return $int->declare_widget($path);
 }
 sub menu {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("menu", @_);
-    $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("menu", @_);
+    return $int->declare_widget($path);
 }
 sub menubutton {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("menubutton", @_);
-    $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("menubutton", @_);
+    return $int->declare_widget($path);
 }
 sub canvas {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("canvas", @_);
-    $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("canvas", @_);
+    return $int->declare_widget($path);
 }
 sub text {
     my $int = (ref $_[0]?shift:$tkinterp);
-    my $path = $int->call("text", @_);
-    $wint{$path} = $int;
-    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+    my ($path) = $int->call("text", @_);
+    return $int->declare_widget($path);
+}
+# subroutine awidget used to create [a]ny [widget]. Nothing complicated here,
+# mainly needed for keeping track of this new widget and blessing it to right
+#package
+sub awidget {
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $wclass = shift;
+    # Following is a suboptimal way of autoloading, there should exist a way
+    # to Improve it.
+    my $subtext = <<"EOS";
+package Tcl::Tk;
+sub $wclass {
+    my \$int = (ref \$_[0]?shift:\$tkinterp);
+    my (\$path) = \$int->call("$wclass", \@_);
+    return \$int->declare_widget(\$path);
+}
+EOS
+    unless ($wclass=~/^\w+$/) {
+      # to prevent bad hackery -- imagine someone names widget
+      # as 'text {print "I am new text widget!";`rm files`} sub realone'
+      die "widget name '$wclass' contains not allowed characters";
+    }
+    eval "$subtext"; #this will create appropriate method.
+    if ($#_>-1) {
+      return eval "\$int->$wclass(\@_)";
+    }
+}
+sub awidgets {
+    my $int = (ref $_[0]?shift:$tkinterp);
+    $int->awidget($_) for @_;
 }
 sub widget($@) {
+    my $int = (ref $_[0]?shift:$tkinterp);
     my $wpath = shift;
-    return $w{$wpath};
-}
-sub widget_do($@) {
-    my $wpath = shift;
-    return $w{$wpath};
+    if (exists $w{$wpath}) {
+        return $w{$wpath};
+    }
+    if ($wpath=~/^\.[.\w]+$/) {
+        # It looks like widget path
+	# We could ask Tcl about it by invoking
+	# my @res = $int->Eval("info commands $wpath");
+	# but we don't do it, as long as we allow any widget paths to
+	# be used by user.
+        return $int->declare_widget($wpath);
+    }
 }
 sub widgets {
-  \%w;
+    \%w;
 }
 
 sub after { 

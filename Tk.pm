@@ -6,7 +6,7 @@ use Exporter;
 use DynaLoader;
 our @ISA = qw(Exporter DynaLoader);
 
-$Tcl::VERSION = '0.4';
+$Tcl::VERSION = '0.5';
 
 =head1 NAME
 
@@ -155,10 +155,12 @@ See http://www.perl.com/perl/misc/Artistic.html
 
 =cut
 
-my @widgets = qw(frame toplevel label button checkbutton radiobutton scale
-		mainwindow message listbox scrollbar entry menu menubutton canvas text);
+my @widgets = qw(frame toplevel label labelframe button checkbutton radiobutton scale
+		 mainwindow message listbox scrollbar entry menu menubutton canvas text
+		 widget
+		);
 my @misc = qw(MainLoop after destroy focus grab lower option place raise
-	      selection tk tkbind tkpack tkwait update winfo wm);
+	      selection tk tkbind tkpack grid tkwait update winfo wm);
 our @EXPORT_OK = (@widgets, @misc);
 our %EXPORT_TAGS = (widgets => \@widgets, misc => \@misc);
 
@@ -220,6 +222,10 @@ sub mainwindow {
 }
 sub label {
     my $path = $tkinterp->call("label", @_);
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+}
+sub labelframe {
+    my $path = $tkinterp->call("labelframe", @_);
     $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub button {
@@ -306,6 +312,7 @@ sub property { $tkinterp->call("property", @_) }
 
 sub tkbind { $tkinterp->call("bind", @_) }
 sub tkpack { $tkinterp->call("pack", @_) }
+sub grid { $tkinterp->call("grid", @_) }
 
 package Tcl::Tk::Widget;
 

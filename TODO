@@ -1,0 +1,3 @@
+ - stringification of widget object should result in widget's name
+ - "event" mechanism should be different and easier to use
+ - single $interp instance is not enough, should be OO

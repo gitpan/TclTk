@@ -4,21 +4,37 @@ use Tcl;
 
 my %tclcfg;
 my ($libpath, $incpath) = ('','');
+my $libpref = '';
 
 my $interp = new Tcl;
 $interp->Init();
+
+#$interp->SetVar('tcl_libPath','/usr/lib');
+my $tcl_libPath = $interp->GetVar('tcl_libPath');
 my $tcl_library = $interp->GetVar('tcl_library');
 my $tcl_version = $interp->GetVar('tcl_version');
-$interp->Eval('package require Tk');
+print STDERR "tcl_library=$tcl_library; tcl_libPath=$tcl_libPath\n";
+eval {
+    $interp->Eval('package require Tk');
+};
+if ($@) {
+    print STDERR "Warning: could not load Tk from tclsh; please edit and check".
+            " Makefile.PL manually to reflect your system.";
+    $interp->SetVar('tk_version','8.3');
+}
 my $tk_version = $interp->GetVar('tk_version');
 print STDERR "tcl_version=$tcl_version; tk_version=$tk_version\n";
 
-s/\.// for $tcl_version, $tk_version;
-
 if ($^O eq 'MSWin32') {
+    s/\.// for $tcl_version, $tk_version;
     $tcl_library =~ /^(.*)[\\\/]lib[\\\/]/;
     $libpath = "-L$1/lib";
     $incpath = "-I$1/include";
+}
+elsif ($^O eq 'cygwin') {
+    s/\.// for $tcl_version, $tk_version;
+    $libpref = 'cyg';
+    $incpath .= " -I/usr/X11R6/include";
 }
 
 use ExtUtils::MakeMaker;
@@ -29,6 +45,6 @@ WriteMakefile(
 	PREREQ_PM => {
 		Tcl => 0.4,
 	},
-	LIBS => ["$libpath -ltcl$tcl_version -ltk$tk_version"],
+	LIBS => ["$libpath -l${libpref}tcl$tcl_version -l${libpref}tk$tk_version"],
 	INC => "$incpath",
       );

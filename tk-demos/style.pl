@@ -36,19 +36,19 @@ sub nonl ($) {local $_=shift; s/\n/ /g;$_}
 $tw->tag('configure', 'bold', -font=>'Courier 12 bold italic');
 $tw->tag('configure', 'big', -font=>'Courier 14 bold');
 $tw->tag('configure', 'verybig', -font=>'Helvetica 24 bold');
-#if {[winfo depth $w] > 1} {
+if ($::interp->Eval("winfo depth $w.text") > 1) {
     $tw->tag('configure', 'color1', -background=>'#a0b7ce');
     $tw->tag('configure', 'color2', -foreground=>'red');
     $tw->tag('configure', 'raised', -relief=>'raised', -borderwidth=>1);
     $tw->tag('configure', 'sunken', -relief=>'sunken', -borderwidth=>1);
-#} else {
-#    $tw->tag('configure', 'color1', -background=>'black', -foreground=>'white');
-#    $tw->tag('configure', 'color2', -background=>'black', -foreground=>'white');
-#    $tw->tag('configure', 'raised', -background=>'white', -relief=>'raised',
-#	    -borderwidth=>1);
-#    $tw->tag('configure', 'sunken', -background=>'white', -relief=>'sunken',
-#	    -borderwidth=>1);
-#}
+} else {
+    $tw->tag('configure', 'color1', -background=>'black', -foreground=>'white');
+    $tw->tag('configure', 'color2', -background=>'black', -foreground=>'white');
+    $tw->tag('configure', 'raised', -background=>'white', -relief=>'raised',
+           -borderwidth=>1);
+    $tw->tag('configure', 'sunken', -background=>'white', -relief=>'sunken',
+           -borderwidth=>1);
+}
 $tw->tag('configure', 'bgstipple', -background=>'black', -borderwidth=>0,
 	-bgstipple=>'gray12');
 $tw->tag('configure', 'fgstipple', -fgstipple=>'gray50');

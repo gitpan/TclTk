@@ -5,30 +5,31 @@
 #
 # RCS: @(#) $Id: text.tcl,v 1.3 2001/11/15 11:55:26 dkf Exp $
 
-if {![info exists widgetDemo]} {
-    error "This script should be run from the \"widget\" demo."
+our $widgetDemo;
+unless ($widgetDemo) {
+    die "This script should be run from the \"widget\" demo."
 }
 
-set w .text
-catch {destroy $w}
-toplevel $w
-wm title $w "Text Demonstration - Basic Facilities"
-wm iconname $w "text"
-positionWindow $w
+my $w = '.text';
+$::interp->call('destroy', $w);
+toplevel $w;
+wm('title', $w, "Text Demonstration - Basic Facilities");
+wm('iconname', $w, "text");
+positionWindow($w);
 
-frame $w.buttons
-pack $w.buttons -side bottom -fill x -pady 2m
-button $w.buttons.dismiss -text Dismiss -command "destroy $w"
-button $w.buttons.code -text "See Code" -command "showCode $w"
-pack $w.buttons.dismiss $w.buttons.code -side left -expand 1
+frame "$w.buttons";
+tkpack "$w.buttons", -side=>'bottom', -fill=>'x', -pady=>'2m';
+button "$w.buttons.dismiss", -text=>'Dismiss', -command=>"destroy $w";
+button "$w.buttons.code", -text=>"See Code", -command=>"showCode $w";
+tkpack "$w.buttons.dismiss", "$w.buttons.code", -side=>'left', -expand=>1;
 
-text $w.text -relief sunken -bd 2 -yscrollcommand "$w.scroll set" -setgrid 1 \
-	-height 30 -undo 1 -autosep 1
-scrollbar $w.scroll -command "$w.text yview"
-pack $w.scroll -side right -fill y
-pack $w.text -expand yes -fill both
-$w.text insert 0.0 \
-{This window is a text widget.  It displays one or more lines of text
+my $tw = text "$w.text", -relief=>'sunken', -bd=>2,
+             -yscrollcommand=>"$w.scroll set", qw/-setgrid 1 -height 30 -undo 1 -autosep 1/;
+scrollbar "$w.scroll", -command=>"$w.text yview";
+tkpack "$w.scroll", qw/-side right -fill y/;
+tkpack "$w.text", qw/-expand yes -fill both/;
+$tw->insert('0.0',
+"This window is a text widget.  It displays one or more lines of text
 and allows you to edit the text.  Here is a summary of the things you
 can do to a text widget:
 
@@ -67,22 +68,21 @@ character if that is the only thing left on the line.  Control-o opens
 a new line by inserting a newline character to the right of the insertion
 cursor.  Control-t transposes the two characters on either side of the
 insertion cursor.  Control-z undoes the last editing action performed,
-and }
+and " .
 
-switch $tcl_platform(platform) {
-    "unix" - "macintosh" {
-	$w.text insert end "Control-Shift-z"
-    }
-    "windows" {
-	$w.text insert end "Control-y"
-    }
-}
+(
+  {'MSWin32', "Control-y", 
+    'unix', "Control-Shift-z",
+    'macintosh', "Control-Shift-z",
+  } -> {$^O} || "Control-Shift-z"
+)
+.
+" redoes undone edits.
 
-$w.text insert end { redoes undone edits.
-
-7. Resize the window.  This widget has been configured with the "setGrid"
+8. Resize the window.  This widget has been configured with the \"setGrid\"
 option on, so that if you resize the window it will always resize to an
 even number of characters high and wide.  Also, if you make the window
 narrow you can see that long lines automatically wrap around onto
-additional lines so that all the information is always visible.}
-$w.text mark set insert 0.0
+additional lines so that all the information is always visible.");
+$tw->mark('set', 'insert', '0.0');
+

@@ -118,19 +118,7 @@ $w->{'.t'}->tag('bind', 'demo', '<ButtonRelease-1>', $interp->ev_sub('xy',sub {
      invoke($w->{'.t'}->index("\@$::_ptcl_evx,$::_ptcl_evy"));
 }));
 my $lastLine = "";
-if (0) {
-$interp->Eval(<<'EOS');
-.t tag bind demo <Enter> {
-  puts %x,%y
-    set lastLine [.t index {@%x,%y linestart}]
-    .t tag add hot "$lastLine +1 chars" "$lastLine lineend -1 chars"
-    .t config -cursor hand2
-  puts  [.t index {@%x,%y}]
-}
-EOS
-}else{
-
-  $w->{'.t'}->tag('bind', 'demo', '<Enter>', $interp->ev_sub('xy',sub {
+$w->{'.t'}->tag('bind', 'demo', '<Enter>', $interp->ev_sub('xy',sub {
        $lastLine = $w->{'.t'}->index("\@$::_ptcl_evx,$::_ptcl_evy linestart");
        $w->{'.t'}->tag('add', 'hot', "$lastLine +1 chars", "$lastLine lineend -1 chars");
        #print STDERR '>>'.$interp->GetVar('_ptcl_evx').'.'.$::_ptcl_evx.".$::_ptcl_evy<<\n";
@@ -138,7 +126,6 @@ EOS
        showStatus ($w->{'.t'}->index("\@$::_ptcl_evx,$::_ptcl_evy"));
      })
   );
-}
 $w->{'.t'}->tag('bind', 'demo', '<Leave>', sub {
     $w->{'.t'}->tag(qw/remove hot 1.0 end/);
     $w->{'.t'}->config(-cursor=>'xterm');
@@ -163,7 +150,7 @@ sub addDemoSection ($@) {
     my ($title,@demos) = @_;
     $w->{'.t'}->insert('end', "\n", '', $title, 'title', " \n ", 'demospace');
     my ($num,$i) = (0,0);
-    for (; $i<=(@demos/2); $i+=2) {
+    for (; $i<=$#demos; $i+=2) {
         my ($name, $description) = ($demos[$i],$demos[$i+1]);
 	$w->{'.t'}->insert('end', ++$num.". $description.", "demo demo-$name");
 	$w->{'.t'}->insert('end', " \n ", 'demospace');
@@ -177,19 +164,19 @@ $w->{'.t'}->insert('end',  "\nOnly items marked with '***' are implemented in th
 addDemoSection "Labels, buttons, checkbuttons, and radiobuttons", <<EOS=~/^\s*(\S+)\s+"(.*?)"\n/gm;
     label	"(***) Labels (text and bitmaps)"
     unicodeout	"(***) Labels and UNICODE text"
-    button	"Buttons"
-    check	"Check-buttons (select any of a group)"
-    radio	"Radio-buttons (select one of a group)"
-    puzzle	"A 15-puzzle game made out of buttons"
+    button	"(***) Buttons"
+    check	"(***) Check-buttons (select any of a group)"
+    radio	"(***) Radio-buttons (select one of a group)"
+    puzzle	"(***) A 15-puzzle game made out of buttons"
     icon	"Iconic buttons that use bitmaps"
     image1	"Two labels displaying images"
     image2	"A simple user interface for viewing images"
-    labelframe	"Labelled frames"
+    labelframe	"(***) Labelled frames"
 EOS
 addDemoSection "Listboxes", <<EOS=~/^\s*(\S+)\s+"(.*?)"\n/gm;
-    states	"The 50 states"
+    states	"(***) The 50 states"
     colors	"(***) Colors: change the color scheme for the application"
-    sayings	"A collection of famous and infamous sayings"
+    sayings	"(***) A collection of famous and infamous sayings"
 EOS
 addDemoSection "Entries and Spin-boxes", <<EOS=~/^\s*(\S+)\s+"(.*?)"\n/gm;
     entry1	"Entries without scrollbars"
@@ -199,16 +186,16 @@ addDemoSection "Entries and Spin-boxes", <<EOS=~/^\s*(\S+)\s+"(.*?)"\n/gm;
     form	"Simple Rolodex-like form"
 EOS
 addDemoSection "Text", <<EOS=~/^\s*(\S+)\s+"(.*?)"\n/gm;
-    text	"Basic editable text"
+    text	"(***) Basic editable text"
     style	"(***) Text display styles"
-    bind	"Hypertext (tag bindings)"
-    twind	"A text widget with embedded windows"
+    bind	"(***)(1-3 impl.) Hypertext (tag bindings)"
+    twind	"(***) A text widget with embedded windows"
     search	"A search tool built with a text widget"
 EOS
 addDemoSection "Canvases", <<EOS=~/^\s*(\S+)\s+"(.*?)"\n/gm;
-    items	"The canvas item types"
-    plot	"A simple 2-D plot"
-    ctext	"Text items in canvases"
+    items	"(***)The canvas item types"
+    plot	"(***) A simple 2-D plot"
+    ctext	"(***)Text items in canvases"
     arrow	"An editor for arrowheads on canvas lines"
     ruler	"A ruler with adjustable tab stops"
     floor	"A building floor plan"
@@ -267,7 +254,8 @@ proc showVars {w args} {
     toplevel $w
     wm title $w "Variable values"
     label $w.title -text "Variable values:" -width 20 -anchor center \
-	    -font $widgetFont(vars)
+	    -font {Helvetica 14}
+	    #$widgetFont(vars)
     pack $w.title -side top -fill x
     set len 1
     foreach i $args {

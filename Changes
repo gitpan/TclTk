@@ -1,5 +1,11 @@
 Revision history for Perl extension Inline.
 
+0.5	25-may-2003, Vadim Konovalov
+	- more 'tk-demos' implemented scripts
+	- created 'demos' subdir and moved demo scripts to there
+	- 'linux' and 'cygwin' supported
+	- TODO file added
+
 0.4	19-may-2003, Vadim Konovalov
 	- changed version system and added module VERSION variable
 	- compatibility changes to support modern versions of Perl and Tcl

@@ -1,30 +1,41 @@
-	  Tcl::Tk extension module (release beta1) for Perl5
+	  Tcl::Tk extension module (release beta2) for Perl5
 
-	      Copyright (c) 1994, 1995  Malcolm Beattie
+	      Copyright (c) 1994-1997  Malcolm Beattie
 			 All rights reserved.
 
     This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2, or (at your option)
-    any later version.
+    it under the terms of either:
+
+        a) the GNU General Public License as published by the Free
+        Software Foundation; either version 1, or (at your option) any
+        later version, or
+
+        b) the "Artistic License" which comes with every Perl distribution.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details. 
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See either
+    the GNU General Public License or the Artistic License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with this distribution; if not, write to the Free Software
-    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 
-This is the beta1 release of the Tcl::Tk extension module for Perl5. You
-need to have at least release 5.001 of Perl because the installation
-of this extension uses features of ExtUtils::MakeMaker which only work
-properly as of that release. You also need the Tcl extension.
+This is the beta2 release of the Tcl::Tk extension module for Perl5. You
+need to have at least release 5.002 of Perl and you need to have installed
+the Tcl extension already.
 
 The Tcl::Tk extension (not to be confused with the "native" perl5
-version of Tk) provides a raw but complete interface to the whole of
-Tk via the Tcl extension.
+Perl/Tk extension) provides a raw but complete interface to the whole
+of Tk via the Tcl extension.
+
+Build in the usual way for a perl extension:
+
+1. Tweak Makefile.PL is necessary--if your Tcl or Tk include files
+are neither in /usr/local/include nor in /usr/include/tcl then put
+the appropriate path in the INC line. If your Tk libraries are not
+found by default then add the appropriate -L options to the LIBS line.
+
+2. perl Makefile.PL
+   make
+   make install
 
 Malcolm Beattie
 mbeattie@sable.ox.ac.uk

@@ -1,28 +1,22 @@
-# $Id: Tk.pm,v 1.5 1995/06/06 11:58:26 mbeattie Exp $
-#
-# $Log: Tk.pm,v $
-# Revision 1.5  1995/06/06  11:58:26  mbeattie
-# Included and edited pod. Added Tk 4.0 commands/widgets.
-#
-# Revision 1.4  1994/12/06  17:32:32  mbeattie
-# none
-#
-# Revision 1.3  1994/11/12  23:29:55  mbeattie
-# *** empty log message ***
-#
-# Revision 1.1  1994/11/12  18:11:05  mbeattie
-# Initial revision
-#
-
 package Tcl::Tk;
 
-require Tcl;
+use Tcl;
 use Exporter;
 use DynaLoader;
+@ISA = qw(Exporter DynaLoader);
 
-=head1
+=head1 NAME
 
 Tcl::Tk - Extension module for Perl giving access to Tk via the Tcl extension
+
+=head1 SYNOPSIS
+
+    use Tcl;
+    use Tcl::Tk qw(:widgets :misc);
+    $interp = new Tcl::Tk;
+    label(".l", -text => "Hello world");
+    tkpack ".l";
+    MainLoop;
 
 =head1 DESCRIPTION
 
@@ -34,37 +28,41 @@ B<wish> or other Tcl/Tk applications do).
 =head2 Access to the Tcl and Tcl::Tk extensions
 
 To get access to the Tcl and Tcl::Tk extensions, put the commands
-    require Tcl;
+    use Tcl;
     use Tcl::Tk;
 
-near the top of your program. The Tcl extension does not alter your
-namespace at all (hence the "require"). The Tcl::Tk extension imports
-the widget and other Tk commands into your namespace (hence the "use").
+near the top of your program. You can also import short-cut functions
+into your namespace from Tcl::Tk if you want to avoid using method calls
+for everything.
 
 =head2 Creating a Tcl interpreter for Tk
 
 To create a Tcl interpreter initialised for Tk, use
+
     $i = new Tcl::Tk (DISPLAY, NAME, SYNC);
 
 All arguments are optional. This creates a Tcl interpreter object $i,
-binds in all the additional Tk/Tcl commands and creates a main toplevel
-window. The window is created on display DISPLAY (defaulting to the display
-named in the DISPLAY environment variable) with name NAME (defaulting to
-the name of the Perl program, i.e. the contents of Perl variable $0).
-If the SYNC argument is present and true then an I<XSynchronize()> call is
-done ensuring that X events are processed synchronously (and thus slowly).
-This is there for completeness and is only very occasionally useful for
-debugging errant X clients (usually at a much lower level than Tk users
-will want).
+and creates a main toplevel window. The window is created on display
+DISPLAY (defaulting to the display named in the DISPLAY environment
+variable) with name NAME (defaulting to the name of the Perl program,
+i.e. the contents of Perl variable $0). If the SYNC argument is present
+and true then an I<XSynchronize()> call is done ensuring that X events
+are processed synchronously (and thus slowly). This is there for
+completeness and is only very occasionally useful for debugging errant
+X clients (usually at a much lower level than Tk users will want).
 
 =head2 Entering the main event loop
 
-The Perl command
-    MainLoop;
+The Perl method call
 
-enters the Tk event loop. (Notice that the name differs from the equivalent
-command in TkPerl5: names of commands in the Tcl and Tcl::Tk extensions
-closely follow the C interface names with leading Tcl_ or Tk_ removed.)
+    $i->MainLoop;
+
+on the Tcl::Tk interpreter object enters the Tk event loop. You can
+instead do C<Tcl::Tk::MainLoop> or C<Tcl::Tk-E<gt>MainLoop> if you prefer.
+You can even do simply C<MainLoop> if you import it from Tcl::Tk in
+the C<use> statement. Note that commands in the Tcl and Tcl::Tk
+extensions closely follow the C interface names with leading Tcl_
+or Tk_ removed.
 
 =head2 Creating widgets
 
@@ -72,44 +70,58 @@ If desired, widgets can be created and handled entirely by Tcl/Tk code
 evaluated in the Tcl interpreter object $i (created above). However,
 there is an additional way of creating widgets in the interpreter
 directly from Perl. The names of the widgets (frame, toplevel, label etc.)
-are exported as Perl commands by the Tcl::Tk extension. The initial
-"use Tcl::Tk;" command imports those commands into your namespace.
-The command
+can be imported as direct commands from the Tcl::Tk extension. For example,
+if you have imported the C<label> command then
+
     $l = label(".l", -text => "Hello world);
 
-(for example), executes the command
+executes the command
+
     $i->call("label", ".l", "-text", "Hello world);
 
-and hence gets Tcl to create a new label widget .l in your Tcl/Tk interpreter.
-Since Tcl/Tk then creates a command ".l" in the interpreter and creating a
-similarly named sub in Perl isn't a good idea, the Tcl::Tk extension uses a
-kludge to give a slightly more convenient way of manipulating the widget.
-Instead of returning the name of the new widget as a string, the above
-label command returns a Perl reference to the widget's name, blessed into an
-almost empty class. Perl method calls on the object are translated into
-commands for the Tcl/Tk interpreter in a very simplistic fashion. For example,
-the Perl command
+and hence gets Tcl to create a new label widget .l in your Tcl/Tk
+interpreter. You can either import such commands one by one with,
+for example,
+
+    use Tcl::Tk qw(label canvas MainLoop winfo);
+
+or you can use the pre-defined Exporter tags B<:widgets> and B<:misc>.
+The B<:widgets> tag imports all the widget commands and the B<:misc>
+tag imports all non-widget commands (see the next section).
+
+Let's return to the creation of the label widget above. Since Tcl/Tk
+creates a command ".l" in the interpreter and creating a similarly
+named sub in Perl isn't a good idea, the Tcl::Tk extension provides a
+slightly more convenient way of manipulating the widget. Instead of
+returning the name of the new widget as a string, the above label
+command returns a Perl reference to the widget's name, blessed into an
+almost empty class. Perl method calls on the object are translated
+into commands for the Tcl/Tk interpreter in a very simplistic
+fashion. For example, the Perl command
+
     $l->configure(-background => "green");
 
 is translated into the command
+
     $i->call($$l, "configure", "-background", "green");
 
 for execution in your Tcl/Tk interpreter. Notice that it simply dereferences
 the object to find the widget name. There is no automagic conversion that
 happens: if you use a Tcl command which wants a widget pathname and you
-only have an object returned by I<label()> (or I<button()> or I<entry()>
+only have an object returned by C<label()> (or C<button()> or C<entry()>
 or whatever) then you must dereference it yourself.
 
 =head2 Non-widget Tk commands
 
-For convenience, the non-widget Tk commands (such as destroy, focus, wm,
-winfo and so on) are also available as Perl commands and translate into
-into their Tcl equivalents for execution in your Tk/Tcl interpreter. The
-names of the Perl commands are the same as their Tcl equivalents except
-for two: Tcl's pack command becomes tkpack in Perl and Tcl's bind command
-becomes tkbind in Perl. The arguments you pass to any of these Perl
-commands are not touched by the Tcl parser: each Perl argument is passed
-as a separate argument to the Tcl command.
+For convenience, the non-widget Tk commands (such as C<destroy>,
+C<focus>, C<wm>, C<winfo> and so on) are also available for export as
+Perl commands and translate into into their Tcl equivalents for
+execution in your Tk/Tcl interpreter. The names of the Perl commands
+are the same as their Tcl equivalents except for two: Tcl's C<pack>
+command becomes C<tkpack> in Perl and Tcl's C<bind> command becomes
+C<tkbind> in Perl. The arguments you pass to any of these Perl
+commands are not touched by the Tcl parser: each Perl argument is
+passed as a separate argument to the Tcl command.
 
 =head2 AUTHOR
 
@@ -117,40 +129,51 @@ Malcolm Beattie, mbeattie@sable.ox.ac.uk
 
 =cut
 
-@ISA = (Exporter, DynaLoader);
+my @widgets = qw(frame toplevel label button checkbutton radiobutton scale
+		 message listbox scrollbar entry menu menubutton canvas text);
+my @misc = qw(MainLoop after destroy focus grab lower option place raise
+	      selection tk tkbind tkpack tkwait update winfo wm);
+@EXPORT_OK = (@widgets, @misc);
+%EXPORT_TAGS = (widgets => \@widgets, misc => \@misc);
 
-@EXPORT = qw(frame toplevel label button checkbutton radiobutton scale
-	     message listbox scrollbar entry menu menubutton canvas text
-	     MainLoop after destroy focus grab lower option place raise
-	     selection tk tkbind tkpack tkwait update winfo wm);
-
-$tkinterp = undef;		# this gets defined when "new" is done
+my $tkinterp = undef;		# this gets defined when "new" is done
 
 sub new {
     my ($class, $name, $display, $sync) = @_;
-    die 'Usage: $interp = new Tcl::Tk([$name [, $display [, $sync]]])'
+    Carp::croak 'Usage: $interp = new Tcl::Tk([$name [, $display [, $sync]]])'
 	if @_ > 4;
-    die "Tcl::Tk interpreter already created" if defined($tkinterp);
-    my($i, $arg);
+    Carp::croak "Tcl::Tk interpreter already created" if defined($tkinterp);
+    my($i, $arg, @argv);
 
-    $display = $ENV{DISPLAY} unless defined($display);
-    ($name = $0) =~ s{.*/}{} unless defined($name);
-
+    if (defined($display)) {
+	push(@argv, -display => $display);
+    } else {
+	$display = $ENV{DISPLAY};
+    }
+    if (defined($name)) {
+	push(@argv, -name => $name);
+    } else {
+	($name = $0) =~ s{.*/}{};
+    }
+    if (defined($sync)) {
+	push(@argv, "-sync");
+    } else {
+	$sync = 0;
+    }
     $i = new Tcl;
     $i->CreateMainWindow($display, $name, $sync);
-    $i->SetVar2("env", "DISPLAY", $display, $Tcl::GLOBAL_ONLY);
-    $i->SetVar("argv0", $0, $Tcl::GLOBAL_ONLY);
-    $i->SetVar("argc", scalar(@main::ARGV), $Tcl::GLOBAL_ONLY);
+    $i->SetVar2("env", "DISPLAY", $display, Tcl::GLOBAL_ONLY);
+    $i->SetVar("argv0", $0, Tcl::GLOBAL_ONLY);
+    $i->SetVar("argc", scalar(@main::ARGV), Tcl::GLOBAL_ONLY);
     $i->ResetResult();
-    foreach $arg (@main::ARGV) {
-	$i->AppendElement($arg);
-    }
-    $i->SetVar("argv", $i->result(), $Tcl::GLOBAL_ONLY);
-    $i->SetVar("tcl_interactive", "0", $Tcl::GLOBAL_ONLY);
+    push(@argv, "--", @ARGV);
+    map { $i->AppendElement($_) } @argv;
+    $i->SetVar("argv", $i->result(), Tcl::GLOBAL_ONLY);
+    $i->SetVar("tcl_interactive", "0", Tcl::GLOBAL_ONLY);
     $i->Init();
     $i->Tk_Init();
 
-    $tkinterp = $i;	# record the interp in package-scope var $tkinterp
+    $tkinterp = $i;
     return $i;
 }
 
@@ -248,11 +271,9 @@ sub AUTOLOAD {
     my $w = shift;
     my $method = $AUTOLOAD;
     $method =~ s/^Tcl::Tk::Widget::// or die "weird inheritance";
-    $Tcl::Tk::tkinterp->call($$w, $method, @_);
+    $tkinterp->call($$w, $method, @_);
 }
 
 bootstrap Tcl::Tk;
 
 1;
-
-__END__

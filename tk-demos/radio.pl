@@ -11,7 +11,7 @@ unless ($widgetDemo) {
 }
 
 my $w = '.radio';
-$::interp->call('destroy', $w);
+$interp->call('destroy', $w);
 toplevel $w;
 wm('title', $w, "Radiobutton Demonstration");
 wm('iconname', $w, "radio");

@@ -11,7 +11,7 @@ unless ($widgetDemo) {
 }
 
 my $w = '.check';
-$::interp->call('destroy', $w);
+$interp->call('destroy', $w);
 toplevel $w;
 wm('title', $w, "Checkbutton Demonstration");
 wm('iconname', $w, "check");

@@ -11,7 +11,7 @@ unless ($widgetDemo) {
 }
 
 my $w = '.labelframe';
-$::interp->call('destroy', $w);
+$interp->call('destroy', $w);
 toplevel $w;
 wm('title', $w, "Labelframe Demonstration");
 wm('iconname', $w, "labelframe");

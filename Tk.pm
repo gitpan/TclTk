@@ -6,7 +6,7 @@ use Exporter;
 use DynaLoader;
 our @ISA = qw(Exporter DynaLoader);
 
-$Tcl::VERSION = '0.5';
+$Tcl::Tk::VERSION = '0.6';
 
 =head1 NAME
 
@@ -14,12 +14,23 @@ Tcl::Tk - Extension module for Perl giving access to Tk via the Tcl extension
 
 =head1 SYNOPSIS
 
-    use Tcl;
     use Tcl::Tk qw(:widgets :misc);
     $interp = new Tcl::Tk;
     label(".l", -text => "Hello world");
     tkpack ".l";
     MainLoop;
+
+Or    
+
+    use Tcl::Tk;
+    $interp = new Tcl::Tk;
+    $interp->label(".l", -text => "Hello world")->pack;
+    my $btn;
+    $btn = $interp->button(".btn", -text => "test", -command => sub {
+      $btn->configure(-text=>"[". $btn->cget('-text')."]");
+    });
+    $btn->pack;
+    $interp->MainLoop;
 
 =head1 DESCRIPTION
 
@@ -31,7 +42,10 @@ B<wish> or other Tcl/Tk applications do).
 Unlike perl-tk extension (available on CPAN), where Tcl+Tk+Tix is embedded
 into extension, this module connects to existing TCL installation. Such
 approach allows to work with most up-to-date TCL, and this automatically gives
-Unicode and pure TCL widgets available to application.
+Unicode and pure TCL widgets available to application along with any widgets
+existing in TCL installation. As an example, Windows user have possibility to
+use ActiveX widgets provided by Tcl extension named "OpTcl", so to provide
+native Windows widgets.
 
 Please see and try to run demo scripts 'demo.pl', 'demo-w-tix.pl' and
 'widgets.pl' in tk-demo directory of source tarball.
@@ -145,6 +159,7 @@ versions.
 =head2 AUTHOR
 
 Malcolm Beattie, mbeattie@sable.ox.ac.uk
+
 Vadim Konovalov, vkonovalov@peterstar.ru, 19 May 2003.
 
 =head2 COPYRIGHT
@@ -156,23 +171,27 @@ See http://www.perl.com/perl/misc/Artistic.html
 =cut
 
 my @widgets = qw(frame toplevel label labelframe button checkbutton radiobutton scale
-		 mainwindow message listbox scrollbar entry menu menubutton canvas text
+		 mainwindow message listbox scrollbar spinbox entry menu menubutton 
+		 canvas text
 		 widget
 		);
 my @misc = qw(MainLoop after destroy focus grab lower option place raise
+              image
 	      selection tk tkbind tkpack grid tkwait update winfo wm);
 our @EXPORT_OK = (@widgets, @misc);
 our %EXPORT_TAGS = (widgets => \@widgets, misc => \@misc);
 
+## TODO -- module's private $tkinterp should go away!
 my $tkinterp = undef;		# this gets defined when "new" is done
+
 my $mainwindow = ['.'];
-my %w; # hash to keep track on all widgets
+my %w; # hash to keep track on all created widgets
+my %wint; # hash to keep track on tk interpreters associated with widgets
 
 sub new {
     my ($class, $name, $display, $sync) = @_;
     Carp::croak 'Usage: $interp = new Tcl::Tk([$name [, $display [, $sync]]])'
 	if @_ > 4;
-    Carp::croak "Tcl::Tk interpreter already created" if defined($tkinterp);
     my($i, $arg, @argv);
 
     if (defined($display)) {
@@ -191,8 +210,11 @@ sub new {
 	$sync = 0;
     }
     $i = new Tcl;
-    $i->CreateMainWindow($display, $name, $sync);
-    bless $mainwindow, 'Tcl::Tk::Widget::MainWindow';
+    unless (defined($tkinterp)) {
+        $i->CreateMainWindow($display, $name, $sync);
+        bless $mainwindow, 'Tcl::Tk::Widget::MainWindow';
+	$wint{'.'} = $i;
+    }
     $i->SetVar2("env", "DISPLAY", $display, Tcl::GLOBAL_ONLY);
     $i->SetVar("argv0", $0, Tcl::GLOBAL_ONLY);
     $i->SetVar("argc", scalar(@main::ARGV), Tcl::GLOBAL_ONLY);
@@ -203,17 +225,21 @@ sub new {
     $i->SetVar("tcl_interactive", "0", Tcl::GLOBAL_ONLY);
     $i->Init();
     $i->Tk_Init();
-
+    #'###???'&&   bless $i, 'Tcl::Tk';
     $tkinterp = $i;
     return $i;
 }
 
 sub frame($@) {
-    my $path = $tkinterp->call("frame", @_);
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("frame", @_);
+    $wint{$path} = $int;
     $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub toplevel {
-    my $path = $tkinterp->call("toplevel", @_);
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("toplevel", @_);
+     $wint{$path} = $int;
     $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub mainwindow {
@@ -221,59 +247,99 @@ sub mainwindow {
     $mainwindow;
 }
 sub label {
-    my $path = $tkinterp->call("label", @_);
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("label", @_);
+    $wint{$path} = $int;
     $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub labelframe {
-    my $path = $tkinterp->call("labelframe", @_);
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("labelframe", @_);
+    $wint{$path} = $int;
     $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub button {
-    my $path = $tkinterp->call("button", @_);
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("button", @_);
+    $wint{$path} = $int;
     $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub checkbutton {
-    my $path = $tkinterp->call("checkbutton", @_);
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("checkbutton", @_);
+    $wint{$path} = $int;
     $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub radiobutton {
-    my $path = $tkinterp->call("radiobutton", @_);
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("radiobutton", @_);
+    $wint{$path} = $int;
     $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub scale {
-    my $path = $tkinterp->call("scale", @_);
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("scale", @_);
+    $wint{$path} = $int;
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+}
+sub spinbox {
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("spinbox", @_);
+    $wint{$path} = $int;
     $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub message {
-    my $path = $tkinterp->call("message", @_);
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("message", @_);
+    $wint{$path} = $int;
     $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub listbox {
-    my $path = $tkinterp->call("listbox", @_);
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("listbox", @_);
+    $wint{$path} = $int;
+    $w{$path} = bless \$path, 'Tcl::Tk::Widget';
+}
+sub image {
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("image", @_);
+    $wint{$path} = $int;
     $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub scrollbar {
-    my $path = $tkinterp->call("scrollbar", @_);
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("scrollbar", @_);
+    $wint{$path} = $int;
     $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub entry {
-    my $path = $tkinterp->call("entry", @_);
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("entry", @_);
+    $wint{$path} = $int;
     $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub menu {
-    my $path = $tkinterp->call("menu", @_);
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("menu", @_);
+    $wint{$path} = $int;
     $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub menubutton {
-    my $path = $tkinterp->call("menubutton", @_);
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("menubutton", @_);
+    $wint{$path} = $int;
     $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub canvas {
-    my $path = $tkinterp->call("canvas", @_);
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("canvas", @_);
+    $wint{$path} = $int;
     $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub text {
-    my $path = $tkinterp->call("text", @_);
+    my $int = (ref $_[0]?shift:$tkinterp);
+    my $path = $int->call("text", @_);
+    $wint{$path} = $int;
     $w{$path} = bless \$path, 'Tcl::Tk::Widget';
 }
 sub widget($@) {
@@ -288,42 +354,134 @@ sub widgets {
   \%w;
 }
 
-sub after { $tkinterp->call("after", @_) }
-sub bell { $tkinterp->call("bell", @_) }
-sub bindtags { $tkinterp->call("bindtags", @_) }
-sub clipboard { $tkinterp->call("clipboard", @_) }
-sub destroy { $tkinterp->call("destroy", @_) }
-sub exit { $tkinterp->call("exit", @_) }
-sub fileevent { $tkinterp->call("fileevent", @_) }
-sub focus { $tkinterp->call("focus", @_) }
-sub grab { $tkinterp->call("grab", @_) }
-sub image { $tkinterp->call("image", @_) }
-sub lower { $tkinterp->call("lower", @_) }
-sub option { $tkinterp->call("option", @_) }
-sub place { $tkinterp->call("place", @_) }
-sub raise { $tkinterp->call("raise", @_) }
-sub selection { $tkinterp->call("selection", @_) }
-sub tk { $tkinterp->call("tk", @_) }
-sub tkwait { $tkinterp->call("tkwait", @_) }
-sub update { $tkinterp->call("update", @_) }
-sub winfo { $tkinterp->call("winfo", @_) }
-sub wm { $tkinterp->call("wm", @_) }
-sub property { $tkinterp->call("property", @_) }
+sub after { 
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("after", @_) }
+sub bell { 
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("bell", @_) }
+sub bindtags {
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("bindtags", @_) }
+sub clipboard { 
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("clipboard", @_) }
+sub destroy { 
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("destroy", @_) }
+sub exit { 
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("exit", @_) }
+sub fileevent {
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("fileevent", @_) }
+sub focus {
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("focus", @_) }
+sub grab {
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("grab", @_) }
+sub lower {
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("lower", @_) }
+sub option {
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("option", @_) }
+sub place {
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("place", @_) }
+sub raise {
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("raise", @_) }
+sub selection {
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("selection", @_) }
+sub tk {
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("tk", @_) }
+sub tkwait {
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("tkwait", @_) }
+sub update {
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("update", @_) }
+sub winfo {
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("winfo", @_) }
+sub wm {
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("wm", @_) }
+sub property {
+    my $int = (ref $_[0]?shift:$tkinterp);
+$int->call("property", @_) }
 
-sub tkbind { $tkinterp->call("bind", @_) }
-sub tkpack { $tkinterp->call("pack", @_) }
-sub grid { $tkinterp->call("grid", @_) }
+sub tkbind {
+    my $int = (ref $_[0]?shift:$tkinterp);
+    $int->call("bind", @_);
+}
+sub tkpack {
+    my $int = (ref $_[0]?shift:$tkinterp);
+    $int->call("pack", @_)
+}
+sub grid {
+    my $int = (ref $_[0]?shift:$tkinterp);
+    $int->call("grid", @_)
+}
+# bind and pack geometry methods
+sub bind {
+    my $int = shift;
+    $int->call("bind", @_);
+}
+sub pack {
+    my $int = shift;
+    $int->call("pack", @_)
+}
 
 package Tcl::Tk::Widget;
 
+# returns interpreter that is associated with widget
+sub interp {
+    my $self = shift;
+    return $wint{$$self};
+}
+
+#
+# few geometry methods here, as syntax sugar to do
+#  button(...)->pack;
+#assume here that OO is reference to widget's path
+#
+sub pack {
+  my $self = shift;
+  $wint{$$self}->call("pack",$$self,@_);
+  $self;
+}
+sub grid {
+  my $self = shift;
+  $wint{$$self}->call("grid",$$self,@_);
+  $self;
+}
+sub place {
+  my $self = shift;
+  $wint{$$self}->call("place",$$self,@_);
+  $self;
+}
+sub form {
+  my $self = shift;
+  $wint{$$self}->call("tixForm",$$self,@_);
+  $self;
+}
 
 sub DESTROY {}			# do not let AUTOLOAD catch this method
+
+#
+# Let Tcl/Tk/Tix process required method via AUTOLOAD mechanism
+#
 
 sub AUTOLOAD {
     my $w = shift;
     my $method = $::Tcl::Tk::Widget::AUTOLOAD;
     $method =~ s/^Tcl::Tk::Widget::// or die "weird inheritance ($method)";
-    $tkinterp->call($$w, $method, @_);
+    $wint{$$w}->call($$w, $method, @_);
 }
 
 package Tcl::Tk::Widget::MainWindow;
@@ -335,7 +493,7 @@ sub AUTOLOAD {
     my $w = shift;
     my $method = $::Tcl::Tk::Widget::MainWindow::AUTOLOAD;
     $method =~ s/^Tcl::Tk::Widget::MainWindow::// or die "weird inheritance ($method)";
-    $tkinterp->call('.', $method, @_);
+    $wint{'.'}->call('.', $method, @_);
 }
 
 bootstrap Tcl::Tk;

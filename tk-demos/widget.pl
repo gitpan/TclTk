@@ -18,23 +18,17 @@ if ($0=~/^(.*)[\\\/][^\\\/]+$/) {
 }
 
 my $interp = new Tcl::Tk;
-$::interp = $interp; # FIXME !! this most probably change
-my $w = Tcl::Tk::widgets;
-$::w=$w; # ... and this
+$::interp=$interp;
 
-#? eval destroy [winfo child .]
 wm('title', '.', "Widget Demonstration");
-=ignore
-if {$tcl_platform(platform) eq "unix"} {
+if ($interp->Eval('return $tcl_platform(platform)') eq "unix") {
     # This won't work everywhere, but there's no other way in core Tk
     # at the moment to display a coloured icon.
-    image create photo TclPowered \
-	    -file [file join $tk_library images logo64.gif]
-    wm iconwindow . [toplevel ._iconWindow]
-    pack [label ._iconWindow.i -image TclPowered]
-    wm iconname . "tkWidgetDemo"
+    image(qw(create photo TclPowered -file 'images/logo64.gif'));
+    wm('iconwindow', '.', toplevel("._iconWindow"));
+    label("._iconWindow.i", -image=>"TclPowered")->pack;
+    wm('iconname', '.', "tkWidgetDemo");
 }
-=cut
 my %widgetFont = (
     main   => 'Helvetica 12',
     bold   => 'Helvetica 12 bold',
@@ -57,18 +51,18 @@ $menuBar -> add ('cascade', -menu => '.menuBar.file', -label=> "File", -underlin
 menu '.menuBar.file', -tearoff => 0;
 
 
-## On the Mac use the specia .apple menu for the about item
-#if {[string equal [tk windowingsystem] "classic"]} {
-#    .menuBar add cascade -menu .menuBar.apple
-#    menu .menuBar.apple -tearoff 0
-#    .menuBar.apple add command -label "About..." -command "aboutBox"
-#} else {
-  $w->{'.menuBar.file'}->add('command', -label => "About...", -command => sub {&aboutBox},
+# On the Mac use the specia .apple menu for the about item
+if ($interp->Eval("tk windowingsystem") eq "classic") {
+    widget('.menuBar')->add('cascade', -menu=>".menuBar.apple");
+    menu(".menuBar.apple", -tearoff=>0);
+    widget('.menuBar.apple')->add('command', -label => "About...", -command => sub {&aboutBox});
+} else {
+  widget('.menuBar.file')->add('command', -label => "About...", -command => sub {&aboutBox},
 	-underline => 0, -accelerator => "<F1>");
-  $w->{'.menuBar.file'}->add('sep');
-#}
+  widget('.menuBar.file')->add('sep');
+}
 
-$w->{'.menuBar.file'}->add('command', -label => "Quit", -command => "exit", -underline => 0, -accelerator => "Meta-Q");
+widget('.menuBar.file')->add('command', -label => "Quit", -command => "exit", -underline => 0, -accelerator => "Meta-Q");
 
 mainwindow->configure(-menu => '.menuBar');
 
@@ -85,7 +79,7 @@ tkpack '.statusBar', -side => 'bottom', -fill => 'x', -pady => 2;
 frame '.textFrame';
 scrollbar '.s', -orient => 'vertical', -command => '.t yview', -highlightthickness => 0, -takefocus => 1;
 tkpack '.s', -in => '.textFrame', -side => 'right', -fill => 'y';
-text '.t', -yscrollcommand=>'.s set', -wrap=>'word', -width=>70, -height=>30,
+my $wtext = text '.t', -yscrollcommand=>'.s set', -wrap=>'word', -width=>70, -height=>30,
 	-font=>$widgetFont{main},  -setgrid=>1,  -highlightthickness=>0,
 	-padx=>4,  -pady=>2,  -takefocus=>0;
 tkpack '.t', -in=>'.textFrame', -expand=>'y', -fill=>'both', -padx=>'1';
@@ -95,71 +89,70 @@ tkpack  '.textFrame', -expand=>'yes', -fill=>'both';
 # section titles and demo descriptions.  Also define the bindings for
 # tags.
 
-$w->{'.t'}->tag('configure', 'title', -font => $widgetFont{title});
-$w->{'.t'}->tag('configure', 'bold',  -font => $widgetFont{bold});
+$wtext->tag('configure', 'title', -font => $widgetFont{title});
+$wtext->tag('configure', 'bold',  -font => $widgetFont{bold});
 
 # We put some "space" characters to the left and right of each demo description
 # so that the descriptions are highlighted only when the mouse cursor
 # is right over them (but not when the cursor is to their left or right)
 #
-$w->{'.t'}->tag('configure', 'demospace', -lmargin1=>'1c', -lmargin2=>'1c');
+$wtext->tag('configure', 'demospace', -lmargin1=>'1c', -lmargin2=>'1c');
 
 if ($interp->Eval('winfo depth .') == 1) {
-    $w->{'.t'}->tag('configure', qw/demo -lmargin1 1c -lmargin2 1c -underline 1/);
-    $w->{'.t'}->tag('configure', qw/visited -lmargin1 1c -lmargin2 1c -underline 1/);
-    $w->{'.t'}->tag('configure', qw/hot -background black -foreground white/);
+    $wtext->tag('configure', qw/demo -lmargin1 1c -lmargin2 1c -underline 1/);
+    $wtext->tag('configure', qw/visited -lmargin1 1c -lmargin2 1c -underline 1/);
+    $wtext->tag('configure', qw/hot -background black -foreground white/);
 } else {
-    $w->{'.t'}->tag('configure', qw/demo -lmargin1 1c -lmargin2 1c -foreground blue -underline 1/);
-    $w->{'.t'}->tag('configure', qw/visited -lmargin1 1c -lmargin2 1c -foreground #303080 -underline 1/);
-    $w->{'.t'}->tag('configure', qw/hot -foreground red -underline 1/);
+    $wtext->tag('configure', qw/demo -lmargin1 1c -lmargin2 1c -foreground blue -underline 1/);
+    $wtext->tag('configure', qw/visited -lmargin1 1c -lmargin2 1c -foreground #303080 -underline 1/);
+    $wtext->tag('configure', qw/hot -foreground red -underline 1/);
 }
 
-$w->{'.t'}->tag('bind', 'demo', '<ButtonRelease-1>', $interp->ev_sub('xy',sub {
-     invoke($w->{'.t'}->index("\@$::_ptcl_evx,$::_ptcl_evy"));
-}));
-my $lastLine = "";
-$w->{'.t'}->tag('bind', 'demo', '<Enter>', $interp->ev_sub('xy',sub {
-       $lastLine = $w->{'.t'}->index("\@$::_ptcl_evx,$::_ptcl_evy linestart");
-       $w->{'.t'}->tag('add', 'hot', "$lastLine +1 chars", "$lastLine lineend -1 chars");
-       #print STDERR '>>'.$interp->GetVar('_ptcl_evx').'.'.$::_ptcl_evx.".$::_ptcl_evy<<\n";
-       $w->{'.t'}->config(-cursor=>'hand2');
-       showStatus ($w->{'.t'}->index("\@$::_ptcl_evx,$::_ptcl_evy"));
-     })
-  );
-$w->{'.t'}->tag('bind', 'demo', '<Leave>', sub {
-    $w->{'.t'}->tag(qw/remove hot 1.0 end/);
-    $w->{'.t'}->config(-cursor=>'xterm');
-    $w->{'.statusBar.lab'}->config(-text=>"");
+$wtext->tag('bind', 'demo', '<ButtonRelease-1>', \\'xy',sub {
+     invoke($wtext->index('@'.Tcl::Ev('x').','.Tcl::Ev('y')));
 });
-$w->{'.t'}->tag('bind', 'demo', '<Motion>', $interp->ev_sub('xy',sub {
-    my $newLine = $w->{'.t'}->index("\@$::_ptcl_evx,$::_ptcl_evy linestart");
+my $lastLine = "";
+$wtext->tag('bind', 'demo', '<Enter>', \\'xy',sub {
+       $lastLine = $wtext->index('@'.Tcl::Ev('x').','.Tcl::Ev('y')." linestart");
+       $wtext->tag('add', 'hot', "$lastLine +1 chars", "$lastLine lineend -1 chars");
+       $wtext->config(-cursor=>'hand2');
+       showStatus ($wtext->index('@'.Tcl::Ev('x').','.Tcl::Ev('y')));
+     }
+  );
+$wtext->tag('bind', 'demo', '<Leave>', sub {
+    $wtext->tag(qw/remove hot 1.0 end/);
+    $wtext->config(-cursor=>'xterm');
+    widget('.statusBar.lab')->config(-text=>"");
+});
+$wtext->tag('bind', 'demo', '<Motion>', \\'xy', sub {
+    my $newLine = $wtext->index('@'.Tcl::Ev('x').','.Tcl::Ev('y')." linestart");
     if ($newLine ne $lastLine) {
-        $w->{'.t'}->tag(qw/remove hot 1.0 end/);
+        $wtext->tag(qw/remove hot 1.0 end/);
         $lastLine = $newLine;
-        my @tags = grep {/^demo-/} $w->{'.t'}->tag('names', "\@$::_ptcl_evx,$::_ptcl_evy");
+        my @tags = grep {/^demo-/} $wtext->tag('names', '@'.Tcl::Ev('x').','.Tcl::Ev('y'));
         if ($#tags >= 0) {
-               $w->{'.t'}->tag('add', 'hot', "$lastLine +1 chars", "$lastLine lineend -1 chars");
+               $wtext->tag('add', 'hot', "$lastLine +1 chars", "$lastLine lineend -1 chars");
         }
     }
-    showStatus ($w->{'.t'}->index("\@$::_ptcl_evx,$::_ptcl_evy"));
-}));
+    showStatus ($wtext->index('@'.Tcl::Ev('x').','.Tcl::Ev('y')));
+});
 
 # Create the text for the text widget.
 
 sub addDemoSection ($@) {
     my ($title,@demos) = @_;
-    $w->{'.t'}->insert('end', "\n", '', $title, 'title', " \n ", 'demospace');
+    $wtext->insert('end', "\n", '', $title, 'title', " \n ", 'demospace');
     my ($num,$i) = (0,0);
     for (; $i<=$#demos; $i+=2) {
         my ($name, $description) = ($demos[$i],$demos[$i+1]);
-	$w->{'.t'}->insert('end', ++$num.". $description.", "demo demo-$name");
-	$w->{'.t'}->insert('end', " \n ", 'demospace');
+	$wtext->insert('end', ++$num.". $description.", "demo demo-$name");
+	$wtext->insert('end', " \n ", 'demospace');
     }
 }
 
-$w->{'.t'}->insert('end',  "Tk Widget Demonstrations\n", 'title');
-$w->{'.t'}->insert('end',  "\nThis application provides a front end for several short scripts that demonstrate what you can do with Tk widgets.  Each of the numbered lines below describes a demonstration;  you can click on it to invoke the demonstration.  Once the demonstration window appears, you can click the ", '', "See Code", 'bold', " button to see the Tcl/Tk code that created the demonstration.  If you wish, you can edit the code and click the ", '', "Rerun Demo", 'bold', " button in the code window to reinvoke the demonstration with the modified code.\n");
-$w->{'.t'}->insert('end',  "\nOnly items marked with '***' are implemented in this demo. All other features are also available, they're just not expressed properly.\n");
+$wtext->insert('end',  "Tk Widget Demonstrations\n", 'title');
+$wtext->insert('end',  "\nThis application provides a front end for several short scripts that demonstrate what you can do with Tk widgets.  Each of the numbered lines below describes a demonstration;  you can click on it to invoke the demonstration.  Once the demonstration window appears, you can click the ", '', "See Code", 'bold', " button to see the Tcl/Tk code that created the demonstration.  If you wish, you can edit the code and click the ", '', "Rerun Demo", 'bold', " button in the code window to reinvoke the demonstration with the modified code.\n");
+$wtext->insert('end',  "\nOnly items marked with '***' are implemented in this demo. All other features are also available, they're just not expressed properly.\n");
 
 addDemoSection "Labels, buttons, checkbuttons, and radiobuttons", <<EOS=~/^\s*(\S+)\s+"(.*?)"\n/gm;
     label	"(***) Labels (text and bitmaps)"
@@ -168,9 +161,9 @@ addDemoSection "Labels, buttons, checkbuttons, and radiobuttons", <<EOS=~/^\s*(\
     check	"(***) Check-buttons (select any of a group)"
     radio	"(***) Radio-buttons (select one of a group)"
     puzzle	"(***) A 15-puzzle game made out of buttons"
-    icon	"Iconic buttons that use bitmaps"
-    image1	"Two labels displaying images"
-    image2	"A simple user interface for viewing images"
+    icon	"(***) Iconic buttons that use bitmaps"
+    image1	"(***) Two labels displaying images"
+    image2	"(***) A simple user interface for viewing images"
     labelframe	"(***) Labelled frames"
 EOS
 addDemoSection "Listboxes", <<EOS=~/^\s*(\S+)\s+"(.*?)"\n/gm;
@@ -179,11 +172,11 @@ addDemoSection "Listboxes", <<EOS=~/^\s*(\S+)\s+"(.*?)"\n/gm;
     sayings	"(***) A collection of famous and infamous sayings"
 EOS
 addDemoSection "Entries and Spin-boxes", <<EOS=~/^\s*(\S+)\s+"(.*?)"\n/gm;
-    entry1	"Entries without scrollbars"
-    entry2	"Entries with scrollbars"
-    entry3	"Validated entries and password fields"
-    spin	"Spin-boxes"
-    form	"Simple Rolodex-like form"
+    entry1	"(***) Entries without scrollbars"
+    entry2	"(***) Entries with scrollbars"
+    entry3	"(***) Validated entries and password fields"
+    spin	"(***) Spin-boxes"
+    form	"(***) Simple Rolodex-like form"
 EOS
 addDemoSection "Text", <<EOS=~/^\s*(\S+)\s+"(.*?)"\n/gm;
     text	"(***) Basic editable text"
@@ -224,7 +217,7 @@ addDemoSection "Miscellaneous", <<EOS=~/^\s*(\S+)\s+"(.*?)"\n/gm;
     dialog2	"A dialog box with a global grab"
 EOS
 
-$w->{'.t'}->configure(-state=>'disabled');
+$wtext->configure(-state=>'disabled');
 focus '.s';
 
 
@@ -286,12 +279,12 @@ EOS
 
 sub invoke ($) {
     my $index = shift;
-    my @tags = grep {/^demo-/} $w->{'.t'}->tag('names', $index);
+    my @tags = grep {/^demo-/} $wtext->tag('names', $index);
     if ($#tags < 0) {
 	return;
     }
-    my $cursor = $w->{'.t'}->cget('-cursor');
-    $w->{'.t'}->configure(-cursor=>'watch');
+    my $cursor = $wtext->cget('-cursor');
+    $wtext->configure(-cursor=>'watch');
     update;
     my $demo = substr($tags[0],5);
     if (-e "$demo.pl") {
@@ -304,9 +297,9 @@ sub invoke ($) {
         $interp->call('tk_messageBox', -icon => 'info', -type => 'ok', -title => "TODO", -message =>"invoke: uplevel [list source $demo.tcl]");
     }
     update;
-    $w->{'.t'}->configure(-cursor=>$cursor);
+    $wtext->configure(-cursor=>$cursor);
 
-    $w->{'.t'}->tag('add', 'visited', "$index linestart +1 chars", "$index lineend -1 chars");
+    $wtext->tag('add', 'visited', "$index linestart +1 chars", "$index lineend -1 chars");
 }
 
 # showStatus --
@@ -317,18 +310,18 @@ sub invoke ($) {
 sub showStatus ($) {
     my $index = shift;
     my ($newcursor, $cursor);
-    $cursor = $w->{'.t'}->cget('-cursor');
-    my @tags = grep {/^demo-/} $w->{'.t'}->tag('names', $index);
+    $cursor = $wtext->cget('-cursor');
+    my @tags = grep {/^demo-/} $wtext->tag('names', $index);
     if ($#tags < 0) {
-	$w->{'.statusBar.lab'}->config(-text=>" ");
+	widget('.statusBar.lab')->config(-text=>" ");
 	$newcursor = 'xterm';
     } else {
 	my $demo = substr($tags[0],5);
-	$w->{'.statusBar.lab'}->config(-text=>"Run the \"".$demo."\" sample program");
+	widget('.statusBar.lab')->config(-text=>"Run the \"".$demo."\" sample program");
 	$newcursor = 'hand2';
     }
     if ($cursor eq $newcursor) {
-       $w->{'.t'}->config(-cursor=>$newcursor);
+       $wtext->config(-cursor=>$newcursor);
     }
 }
 

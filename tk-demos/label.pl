@@ -11,7 +11,7 @@ unless ($widgetDemo) {
 }
 
 my $w = '.label';
-$::interp->call('destroy', $w);
+$interp->call('destroy', $w);
 toplevel $w;
 wm('title', $w, "Label Demonstration");
 wm('iconname', $w, "label");

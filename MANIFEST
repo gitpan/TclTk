@@ -2,6 +2,7 @@ TODO
 Changes		changes file
 MANIFEST	This list of files
 Makefile.PL	Tcl::Tk extension makefile writer
+ceMakefile.pl	makefile writer for WinCE cross-compilation
 README		Introduction to the Tcl::Tk extension
 Tk.pm		Tcl::Tk extension module
 Tk.xs		Tcl::Tk extension implementation
@@ -20,19 +21,17 @@ tk-demos/cscroll.tcl
 tk-demos/ctext.pl	
 tk-demos/dialog1.tcl	
 tk-demos/dialog2.tcl	
-tk-demos/entry1.tcl	
-tk-demos/entry2.tcl	
-tk-demos/entry3.tcl	
+tk-demos/entry1.pl	
+tk-demos/entry2.pl	
+tk-demos/entry3.pl	
 tk-demos/filebox.tcl	
 tk-demos/floor.tcl	
-tk-demos/form.tcl	
-tk-demos/hello
+tk-demos/form.pl	
 tk-demos/hscale.tcl	
-tk-demos/icon.tcl	
-tk-demos/image1.tcl	
-tk-demos/image2.tcl	
+tk-demos/icon.pl	
+tk-demos/image1.pl	
+tk-demos/image2.pl	
 tk-demos/items.pl
-tk-demos/ixset
 tk-demos/label.pl	
 tk-demos/labelframe.pl	
 tk-demos/license.terms
@@ -50,7 +49,7 @@ tk-demos/rolodex
 tk-demos/ruler.tcl
 tk-demos/sayings.pl
 tk-demos/search.tcl
-tk-demos/spin.tcl
+tk-demos/spin.pl
 tk-demos/square
 tk-demos/states.pl
 tk-demos/style.pl

@@ -1,5 +1,3 @@
-# -- TODO -- call tclsh to discover it's parameters
-
 use Tcl;
 
 my %tclcfg;
@@ -31,20 +29,22 @@ if ($^O eq 'MSWin32') {
     $libpath = "-L$1/lib";
     $incpath = "-I$1/include";
 }
-elsif ($^O eq 'cygwin') {
-    s/\.// for $tcl_version, $tk_version;
-    $libpref = 'cyg';
+else {
+    $libpref = '';
+    $_='' for $tcl_version, $tk_version;
     $incpath .= " -I/usr/X11R6/include";
 }
 
 use ExtUtils::MakeMaker;
+#print <<"#EOS";
 WriteMakefile(
 	NAME => "Tcl::Tk",
 	DISTNAME => "TclTk",
 	VERSION_FROM => 'Tk.pm',
 	PREREQ_PM => {
-		Tcl => 0.4,
+		Tcl => 0.6,
 	},
 	LIBS => ["$libpath -l${libpref}tcl$tcl_version -l${libpref}tk$tk_version"],
 	INC => "$incpath",
       );
+#EOS

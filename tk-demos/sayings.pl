@@ -12,7 +12,7 @@ unless ($widgetDemo) {
 }
 
 my $w = '.sayings';
-$::interp->call('destroy', $w);
+$interp->call('destroy', $w);
 toplevel $w;
 wm('title', $w, "Listbox Demonstration (well-known sayings)");
 wm('iconname', $w, "sayings");

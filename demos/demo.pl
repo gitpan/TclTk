@@ -1,6 +1,5 @@
 use strict;
 use utf8;
-use Tcl;
 use Tcl::Tk qw(:widgets :misc);
 
 my $interp = new Tcl::Tk;

@@ -11,7 +11,7 @@ unless ($widgetDemo) {
 }
 
 my $w = '.bind';
-$::interp->call('destroy', $w);
+$interp->call('destroy', $w);
 toplevel $w;
 wm('title', $w, "Text Demonstration - Tag Bindings");
 wm('iconname', $w, "bind");
@@ -32,7 +32,7 @@ tkpack "$w.text", -expand=>'yes', -fill=>'both';
 # Set up display styles.
 
 my (@bold, @normal);
-if ($::interp->Eval("winfo depth $w.text") > 1) {
+if ($interp->Eval("winfo depth $w.text") > 1) {
     @bold = qw/-background #43ce80 -relief raised -borderwidth 1/;
     @normal = (-background => '', -relief => 'flat');
 } else {

@@ -11,7 +11,7 @@ unless ($widgetDemo) {
 }
 
 my $w = '.button';
-$::interp->call('destroy', $w);
+$interp->call('destroy', $w);
 toplevel $w;
 wm('title', $w, "Button Demonstration");
 wm('iconname', $w, "button");

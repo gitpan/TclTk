@@ -11,7 +11,7 @@ unless ($widgetDemo) {
 }
 
 my $w = '.text';
-$::interp->call('destroy', $w);
+$interp->call('destroy', $w);
 toplevel $w;
 wm('title', $w, "Text Demonstration - Basic Facilities");
 wm('iconname', $w, "text");

@@ -12,7 +12,7 @@ unless ($widgetDemo) {
 }
 
 my $w = '.colors';
-$::interp->call('destroy', $w);
+$interp->call('destroy', $w);
 toplevel $w;
 wm('title', $w, "Listbox Demonstration (colors)");
 wm('iconname', $w, "Listbox");
@@ -35,8 +35,8 @@ listbox "$w.frame.list", -yscroll=>"$w.frame.scroll set",
 	-width=>20, -height=>16, -setgrid=>1;
 tkpack "$w.frame.list", "$w.frame.scroll", -side=>'left', -fill=>'y', -expand=>1;
 
-$::interp->call('bind', "$w.frame.list", '<Double-1>', 'tk_setPalette [selection get]');
-$::w->{"$w.frame.list"}-> insert(qw/ 0 gray60 gray70 gray80 gray85 gray90 gray95 
+$interp->call('bind', "$w.frame.list", '<Double-1>', 'tk_setPalette [selection get]');
+widget("$w.frame.list")-> insert(qw/ 0 gray60 gray70 gray80 gray85 gray90 gray95 
     snow1 snow2 snow3 snow4 seashell1 seashell2 
     seashell3 seashell4 AntiqueWhite1 AntiqueWhite2 AntiqueWhite3 
     AntiqueWhite4 bisque1 bisque2 bisque3 bisque4 PeachPuff1 

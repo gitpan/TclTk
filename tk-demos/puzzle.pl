@@ -34,7 +34,7 @@ sub puzzleSwitch ($$) {
 }
 
 my $w = '.puzzle';
-$::interp->call('destroy', $w);
+$interp->call('destroy', $w);
 toplevel $w;
 wm('title', $w, "15-Puzzle Demonstration");
 wm('iconname', $w, "15-Puzzle");
@@ -68,7 +68,7 @@ if ($interp->call('tk','windowingsystem') eq 'aqua') {
 frame "$w.frame", -width=>$frameSize, -height=>$frameSize, -borderwidth=>2,
 	-relief=>'sunken', -bg=>$ws->cget('-troughcolor');
 tkpack "$w.frame", qw/-side top -pady 1c -padx 1c/;
-$::interp->call('destroy', "$w.s");
+$interp->call('destroy', "$w.s");
 
 my @order = qw(3 1 6 2 5 7 15 13 4 11 8 9 14 10 12);
 for (my $i=0; $i < 15; $i++) {

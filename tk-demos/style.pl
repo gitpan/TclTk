@@ -11,7 +11,7 @@ unless ($widgetDemo) {
 }
 
 my $w = '.style';
-$::interp->call('destroy', $w);
+$interp->call('destroy', $w);
 toplevel $w;
 wm('title', $w, "Text Demonstration - Display Styles");
 wm('iconname', $w, "style");
@@ -36,7 +36,7 @@ sub nonl ($) {local $_=shift; s/\n/ /g;$_}
 $tw->tag('configure', 'bold', -font=>'Courier 12 bold italic');
 $tw->tag('configure', 'big', -font=>'Courier 14 bold');
 $tw->tag('configure', 'verybig', -font=>'Helvetica 24 bold');
-if ($::interp->Eval("winfo depth $w.text") > 1) {
+if ($interp->Eval("winfo depth $w.text") > 1) {
     $tw->tag('configure', 'color1', -background=>'#a0b7ce');
     $tw->tag('configure', 'color2', -foreground=>'red');
     $tw->tag('configure', 'raised', -relief=>'raised', -borderwidth=>1);

@@ -11,7 +11,7 @@ unless ($widgetDemo) {
 }
 
 my $w = '.states';
-$::interp->call('destroy', $w);
+$interp->call('destroy', $w);
 toplevel $w;
 wm('title', $w, "Listbox Demonstration (50 states)");
 wm('iconname', $w, "states");

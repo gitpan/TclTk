@@ -11,7 +11,7 @@ unless ($widgetDemo) {
 }
 
 my $w = '.unicodeout';
-$::interp->call('destroy', $w);
+$interp->call('destroy', $w);
 toplevel $w;
 wm('title', $w, "Unicode Label Demonstration");
 wm('iconname', $w, "unicodeout");
@@ -39,7 +39,7 @@ label "$w.wait", -text=>"Please wait while loading fonts...",
 tkpack "$w.wait";
 frame "$w.f";
 tkpack ("$w.f", -expand=>1, -fill=>'both', -padx=>'2m', -pady=>'1m');
-$::interp->call('grid','columnconfigure', "$w.f", 1, -weight=>1);
+$interp->call('grid','columnconfigure', "$w.f", 1, -weight=>1);
 
 my $i=0;
 sub addSample ($$$) {
@@ -48,15 +48,15 @@ sub addSample ($$$) {
     my $j = ++$i;
     label "$w.f.l$j", -font=>$::font, -text=>"$language:", -anchor=>'nw', -pady=>0;
     label "$w.f.s$j", -font=>$::font, -text=>$sample, -anchor=>'nw', -width=>'30', -pady=>0;
-    $::interp->call('grid',"$w.f.l$j", "$w.f.s$j", -sticky=>'ew', -pady=>0);
-    $::interp->call('grid','configure',"$w.f.l$j", -padx=>'1m');
+    $interp->call('grid',"$w.f.l$j", "$w.f.s$j", -sticky=>'ew', -pady=>0);
+    $interp->call('grid','configure',"$w.f.l$j", -padx=>'1m');
 }
 
 # Processing when some characters are missing might take a while, so make
 # sure we're displaying something in the meantime...
 
-my $oldCursor = $::w->{$w}->cget('-cursor');
-$::w->{$w}->conf(-cursor=>'watch');
+my $oldCursor = widget($w)->cget('-cursor');
+widget($w)->conf(-cursor=>'watch');
 update;
 
 addSample $w, 'Arabic',
@@ -78,6 +78,6 @@ addSample $w, 'Russian',
 	"\x{0420}\x{0443}\x{0441}\x{0441}\x{043A}\x{0438}\x{0439} \x{044F}\x{0437}\x{044B}\x{043A}";
 
 # We're done processing, so change things back to normal running...
-$::interp->call('destroy', "$w.wait");
-$::w->{$w}->conf(-cursor=>$oldCursor);
+$interp->call('destroy', "$w.wait");
+widget($w)->conf(-cursor=>$oldCursor);
 

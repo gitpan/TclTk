@@ -1,4 +1,10 @@
-Revision history for Perl extension Inline.
+Revision history for Perl extension Tcl::Tk.
+
+0.6	05-jun-2003, Vadim Konovalov
+	- more 'tk-demos' implemented scripts
+	- OO
+	- support for WinCE (ceMakefile.pl)
+	- More than one interpreter could be created
 
 0.5	25-may-2003, Vadim Konovalov
 	- more 'tk-demos' implemented scripts

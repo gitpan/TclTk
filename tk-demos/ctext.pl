@@ -11,7 +11,7 @@ unless ($widgetDemo) {
 }
 
 my $w = '.ctext';
-$::interp->call('destroy', $w);
+$interp->call('destroy', $w);
 toplevel $w;
 wm('title', $w, "Canvas Text Demonstration");
 wm('iconname', $w, "Text");
@@ -39,21 +39,21 @@ tkpack "$w.c", qw/-side top -expand yes -fill both/;
 
 my $textFont = 'Helvetica 24';
 
-$cw-> create qw/rectangle 245 195 255 205 -outline black -fill red/;
+$cw->create qw/rectangle 245 195 255 205 -outline black -fill red/;
 
 # First, create the text item and give it bindings so it can be edited.
 
 $cw-> addtag ('text', 'withtag', $cw->create('text', 250, 200, -text=>"This is just a string of text to demonstrate the text facilities of canvas widgets. Bindings have been been defined to support editing (see above).", -width=>440, -anchor=>'n', -font=>"Helvetica 24", -justify=>'left') );
-$cw-> bind ('text', '<1>', $interp->ev_sub('xy', sub {textB1Press($c)}));
-$cw-> bind ('text', '<B1-Motion>', $interp->ev_sub('xy', sub {textB1Move($c)}) );
+$cw-> bind ('text', '<1>', \\'xy', sub {textB1Press($c,Tcl::Ev('x'),Tcl::Ev('y'))});
+$cw-> bind ('text', '<B1-Motion>', \\'xy', sub {textB1Move($c,Tcl::Ev('x'),Tcl::Ev('y'))} );
 $cw-> bind ('text', '<Shift-1>', "$c select adjust current \@%x,%y");
-$cw-> bind ('text', '<Shift-B1-Motion>', $interp->ev_sub('xy', sub {textB1Move ($c)}));
-$cw-> bind ('text', '<KeyPress>', $interp->ev_sub('A', sub {textInsert($c)}));
-$cw-> bind ('text', '<Return>', sub{textInsert($c, "\\n")});
+$cw-> bind ('text', '<Shift-B1-Motion>', \\'xy', sub {textB1Move ($c,Tcl::Ev('x'),Tcl::Ev('y'))});
+$cw-> bind ('text', '<KeyPress>', \\'A', sub {textInsert($c,Tcl::Ev('A'))});
+$cw-> bind ('text', '<Return>', sub{textInsert($c, "\n")});
 $cw-> bind ('text', '<Control-h>', sub{textBs($c)});
 $cw-> bind ('text', '<BackSpace>', sub{textBs($c)});
 $cw-> bind ('text', '<Delete>', sub{textDel($c)});
-$cw-> bind ('text', '<2>', $interp->ev_sub('xy', sub {textPaste ($c)}) );
+$cw-> bind ('text', '<2>', \\'xy', sub {textPaste ($c,Tcl::Ev('x'),Tcl::Ev('y'))} );
 
 # Next, create some items that allow the text's anchor position
 # to be edited.
@@ -102,35 +102,32 @@ $cw->bind('config', '<Leave>', sub{$cw->itemconf('current', -fill=>$textConfigFi
 
 sub textEnter {
     my $w = shift;
-    $textConfigFill = [widget($w)->itemconfig('current', '-fill')]->[4];
-    widget($w)->itemconfig(qw/current -fill black/);
+    my $cw = widget($w);
+    $textConfigFill = [$cw->itemconfig('current', '-fill')]->[4];
+    $cw->itemconfig(qw/current -fill black/);
 }
 
 sub textInsert {
     my $w = shift;
-    my $string = $::_ptcl_evA;
-    return if $string eq "";
-    $interp->Eval("
-    catch {$w dchars text sel.first sel.last}
-    ");
-    widget($w)->insert('text', 'insert', $string);
+    my $string = shift;
+    my $cw = widget($w);
+    return 1 if (!defined($string) or $string eq "");
+    eval {
+      $cw->dchars('text', 'sel.first', 'sel.last');
+    };
+    $cw->insert('text', 'insert', $string);
 }
 
 sub textPaste {
-    my ($w, $pos) = @_;
-    $interp->Eval("
-    catch {
-	$w insert text \"$pos\" [selection get]
-    }
-    ");
-#    eval {
-#        widget($w)->insert('text', $pos, $interp->Eval('selection get'));
-#    };
+    my ($w,$x,$y) = @_;
+    eval {
+        widget($w)->insert('text', "\@$x,$y", $interp->Eval('selection get'));
+    };
 }
 
 sub textB1Press {
     my $w = shift;
-    my ($x,$y) = ($::_ptcl_evx,$::_ptcl_evy);
+    my ($x,$y) = @_;
     my $cw = widget($w);
     $cw->icursor('current', "\@$x,$y");
     $cw->focus('current');
@@ -140,7 +137,7 @@ sub textB1Press {
 
 sub textB1Move {
     my $w = shift;
-    my ($x,$y) = ($::_ptcl_evx,$::_ptcl_evy);
+    my ($x,$y) = @_;
     my $cw = widget($w);
     $cw->select('to', 'current', "\@$x,$y");
 }
@@ -148,22 +145,25 @@ sub textB1Move {
 sub textBs {
     my $w = shift;
     my $cw = widget($w);
-    $interp->Eval("
-    if {[catch {$w dchars text sel.first sel.last}]} {
-        set char [expr {[$w index text insert] - 1}]
-        if {\$char >= 0} {$w dchar text \$char}
+    eval {
+      $cw->dchars('text', 'sel.first', 'sel.last');
+    };
+    if ($@) {
+      my $char = $cw->index('text', 'insert')-1;
+      if ($char >= 0) {$cw->dchar('text', $char);}
+      $@ = '';
     }
-    ");
 }
 
 sub textDel {
     my $w = shift;
     my $cw = widget($w);
-    # Currently this is the only way to do 'catch'
-    # catch mechanism is in TODO list for Tcl module
-    $interp->Eval("
-    if {[catch {$w dchars text sel.first sel.last}]} {
-        $w dchars text insert
-    }");
+    eval {
+      $cw->dchars('text', 'sel.first', 'sel.last');
+    };
+    if ($@) {
+      $cw->dchars('text', 'insert');
+      $@ = '';
+    }
 }
 

@@ -11,7 +11,7 @@ unless ($widgetDemo) {
 }
 
 my $w = '.items';
-$::interp->call('destroy', $w);
+$interp->call('destroy', $w);
 toplevel $w;
 wm('title', $w, "Canvas Item Demonstration");
 wm('iconname', $w, "Items");
@@ -56,7 +56,7 @@ $canv-> create (qw/line 20c 0c 20c 24c -width 2/);
 
 my $font1 = 'Helvetica 12';
 my $font2 = 'Helvetica 24 bold';
-if ($::interp->Eval("winfo depth $c") > 1) {
+if ($interp->Eval("winfo depth $c") > 1) {
     $blue = 'DeepSkyBlue3';
     $red = 'red';
     $bisque = 'bisque3';

@@ -11,7 +11,7 @@ unless ($widgetDemo) {
 }
 
 my $w = '.plot';
-$::interp->call('destroy', $w);
+$interp->call('destroy', $w);
 toplevel $w;
 wm('title', $w, "Plot Demonstration");
 wm('iconname', $w, "Plot");
@@ -60,9 +60,9 @@ foreach my $point (
 
 $cw->bind('point', '<Any-Enter>', sub{$cw->itemconfig(qw/current -fill red/)});
 $cw->bind('point', '<Any-Leave>', sub{$cw->itemconfig(qw/current -fill SkyBlue2/)});
-$cw->bind('point', '<1>', $interp->ev_sub('xy', sub {embPlotDown($c)}));
+$cw->bind('point', '<1>', \\'xy', sub {embPlotDown($c)});
 $cw->bind('point', '<ButtonRelease-1>', sub {$cw->dtag("selected");});
-tkbind $c, '<B1-Motion>', $interp->ev_sub('xy', sub {embPlotMove($c)});
+tkbind $c, '<B1-Motion>', \\'xy', sub {embPlotMove($c)};
 
 my %embPlot;
 $embPlot{lastX} = 0;
@@ -79,7 +79,7 @@ $embPlot{lastY} = 0;
 sub embPlotDown {
     my $w = shift;
     my $tw = widget($w);
-    my ($x,$y) = ($::_ptcl_evx,$::_ptcl_evy);
+    my ($x,$y) = (Tcl::Ev('x'),Tcl::Ev('y'));
     $tw->dtag('selected');
     $tw->addtag('selected', 'withtag', 'current');
     $tw->raise('current');
@@ -98,7 +98,7 @@ sub embPlotDown {
 sub embPlotMove {
     my $w = shift;
     my $tw = widget($w);
-    my ($x,$y) = ($::_ptcl_evx,$::_ptcl_evy);
+    my ($x,$y) = (Tcl::Ev('x'),Tcl::Ev('y'));
     $tw->move('selected', $x-$embPlot{lastX}, $y-$embPlot{lastY});
     $embPlot{lastX} = $x;
     $embPlot{lastY} = $y;
